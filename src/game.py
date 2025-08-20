@@ -8,6 +8,8 @@ class Game:
     def __init__(self, word_list: list[str], phrase_list: list[str]) -> None:
         self.word_list = word_list
         self.phrase_list = phrase_list
+        self.life = 5
+        self.hidden = []
 
         self.clear_type: str = "cls"
         if platform.system() == "Linux":
@@ -60,9 +62,28 @@ class Game:
 
     def start_game(self, level: str) -> None:
         question = self._get_question(level)
+        for letter in question:
+            if letter == " ":
+                self.hidden.append(" ")
+            else:
+                self.hidden.append("_")
+
+        while self.life > 0:
+            print(self.hidden, question, f"life:  {self.life}")
+            letter_input = input("> ")
+            self._letter_in_question(question, letter_input)
 
     def _get_question(self, level: str) -> str:
         if level == "basic":
             return random.choice(self.word_list)
 
         return random.choice(self.phrase_list)
+
+    def _letter_in_question(self, question: str, letter_input: str) -> None:
+        if letter_input not in question:
+            self.life -= 1
+            return
+
+        for letter_idx in range(len(question)):
+            if question[letter_idx] == letter_input:
+                self.hidden[letter_idx] = letter_input
