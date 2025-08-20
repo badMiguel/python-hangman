@@ -46,20 +46,24 @@ class Game:
         while choice != "3":
             os.system(self.clear_type)
 
-            self.start_game(self._game_menu_helper(choice))
+            action = self._game_menu_helper(choice)
+            if action is None:
+                pass 
+            else:
+                self.start_game(action)
 
             for line in menu_text:
                 print(self._center_text_helper(width, line))
             choice = input(" " * (width // 2 - MENU_TEXT_WIDTH // 2) + "-> ")
 
-    def _game_menu_helper(self, choice: str) -> str:
+    def _game_menu_helper(self, choice: str) -> str | None:
         if choice == "1":
             return "basic"
 
         if choice == "2":
             return "intermediate"
 
-        return ""
+        return None
 
     def start_game(self, level: str) -> None:
         question = self._get_question(level)

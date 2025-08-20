@@ -12,6 +12,9 @@ class TestGame(unittest.TestCase):
     def test_menu_select_intermediate(self) -> None:
         self.assertEqual(self.game._game_menu_helper("2"), "intermediate")
 
+    def test_menu_select_none(self) -> None:
+        self.assertEqual(self.game._game_menu_helper(""), None)
+
     def test_get_question_basic(self) -> None:
         self.game._get_question("basic")
         self.assertIn(self.game.answer, self.game.word_list)
