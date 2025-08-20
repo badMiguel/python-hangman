@@ -11,10 +11,7 @@ class Game:
         self.life = 5
         self.hidden = []
         self.answer = ""
-
-        self.clear_type: str = "cls"
-        if platform.system() == "Linux":
-            self.clear_type = "clear"
+        self.clear_type: str = "clear" if platform.system() == "Linux" else "cls"
 
     def _center_text_helper(self, width: int, text: str) -> str:
         return text.center(width)
@@ -48,7 +45,7 @@ class Game:
 
             action = self._game_menu_helper(choice)
             if action is None:
-                pass 
+                pass
             else:
                 self.start_game(action)
 
@@ -73,6 +70,10 @@ class Game:
             letter_input = input("> ")
             self._letter_in_question(letter_input)
 
+        self._reset_game()
+
+    def _reset_game(self) -> None:
+        os.system(self.clear_type)
         self.life = 5
         self.hidden = []
         self.answer = ""

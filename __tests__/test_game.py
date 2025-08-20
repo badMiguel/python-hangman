@@ -48,6 +48,14 @@ class TestGame(unittest.TestCase):
         self.game._letter_in_question("")
         self.assertEqual(self.game.life, initial_life - 1)
 
+    def test_reset_game(self) -> None:
+        self.game.life = 2
+        self.game.hidden = ["_"]
+        self.game.answer = "hello"
+        self.game._reset_game()
+        self.assertEqual(self.game.life, 5)
+        self.assertEqual(self.game.hidden, [])
+        self.assertEqual(self.game.answer, "")
 
 if __name__ == "__main__":
     unittest.main()
