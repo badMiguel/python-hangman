@@ -13,19 +13,30 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game._game_menu_helper("2"), "intermediate")
 
     def test_get_question_basic(self) -> None:
-        self.assertIn(self.game._get_question("basic"), self.game.word_list)
+        self.game._get_question("basic")
+        self.assertIn(self.game.answer, self.game.word_list)
+        if self.game.answer == "big":
+            self.assertEqual(self.game.hidden, ["_", "_", "_"])
+        else:
+            self.assertEqual(self.game.hidden, ["_", "_", "_", "_", "_"])
 
     def test_get_question_intermediate(self) -> None:
-        self.assertIn(self.game._get_question("intermediate"), self.game.phrase_list)
+        self.game._get_question("intermediate")
+        self.assertIn(self.game.answer, self.game.phrase_list)
+        self.assertEqual(
+            self.game.hidden, ["_", "_", "_", " ", "_", "_", "_", "_", "_"]
+        )
 
     def test_letter_in_question_true(self) -> None:
+        self.game.answer = "big"
         self.game.hidden = ["_", "_", "_"]
-        self.game._letter_in_question("big", "i")
+        self.game._letter_in_question("i")
         self.assertEqual(self.game.hidden, ["_", "i", "_"])
 
     def test_letter_in_question_false(self) -> None:
+        self.game.answer = "big"
         initial_life = self.game.life
-        self.game._letter_in_question("big", "a")
+        self.game._letter_in_question("a")
         self.assertEqual(self.game.life, initial_life - 1)
 
 
