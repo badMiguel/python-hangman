@@ -1,3 +1,4 @@
+import random
 import shutil
 import os
 import platform
@@ -7,6 +8,7 @@ class Game:
     def __init__(self, word_list: list[str], phrase_list: list[str]) -> None:
         self.word_list = word_list
         self.phrase_list = phrase_list
+
         self.clear_type: str = "cls"
         if platform.system() == "Linux":
             self.clear_type = "clear"
@@ -15,6 +17,7 @@ class Game:
         return text.center(width)
 
     def game_menu(self) -> None:
+        os.system(self.clear_type)
         width = shutil.get_terminal_size().columns
 
         MENU_TEXT_WIDTH = 37
@@ -56,4 +59,10 @@ class Game:
         return ""
 
     def start_game(self, level: str) -> None:
-        pass
+        question = self._get_question(level)
+
+    def _get_question(self, level: str) -> str:
+        if level == "basic":
+            return random.choice(self.word_list)
+
+        return random.choice(self.phrase_list)
