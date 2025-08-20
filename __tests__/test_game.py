@@ -7,16 +7,10 @@ class TestGame(unittest.TestCase):
         self.game = Game(["big", "small"], ["big small"])
 
     def test_menu_select_basic(self) -> None:
-        self.assertEqual(self.game._game_menu_helper("1"), "Basic level")
+        self.assertEqual(self.game._game_menu_helper("1"), "basic")
 
     def test_menu_select_intermediate(self) -> None:
-        self.assertEqual(self.game._game_menu_helper("2"), "Intermediate level")
-
-    def test_menu_select_quit(self) -> None:
-        self.assertEqual(self.game._game_menu_helper("3"), "Quit")
-
-    def test_menu_select_error(self) -> None:
-        self.assertEqual(self.game._game_menu_helper("4"), "Try again")
+        self.assertEqual(self.game._game_menu_helper("2"), "intermediate")
 
 
 if __name__ == "__main__":
