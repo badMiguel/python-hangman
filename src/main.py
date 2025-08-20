@@ -1,10 +1,6 @@
 import get_data
 import sys
-
-
-class GameLoop:
-    def __init__(self) -> None:
-        pass
+from game import Game
 
 
 def main() -> None:
@@ -15,7 +11,8 @@ def main() -> None:
         sys.exit()
     word_list, phrase_list = data
 
-    print(word_list, phrase_list)
+    game = Game(word_list, phrase_list)
+    game.game_menu()
 
 
 if __name__ == "__main__":
