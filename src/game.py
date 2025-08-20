@@ -89,7 +89,7 @@ class Game:
                 self.hidden.append("_")
 
     def _letter_in_question(self, letter_input: str) -> None:
-        if letter_input not in self.answer:
+        if not letter_input or letter_input not in self.answer:
             self.life -= 1
             return
 

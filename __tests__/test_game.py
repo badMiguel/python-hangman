@@ -42,6 +42,12 @@ class TestGame(unittest.TestCase):
         self.game._letter_in_question("a")
         self.assertEqual(self.game.life, initial_life - 1)
 
+    def test_letter_in_question_false_empty(self) -> None:
+        self.game.answer = "big"
+        initial_life = self.game.life
+        self.game._letter_in_question("")
+        self.assertEqual(self.game.life, initial_life - 1)
+
 
 if __name__ == "__main__":
     unittest.main()
