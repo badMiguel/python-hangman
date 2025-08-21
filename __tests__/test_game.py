@@ -1,10 +1,17 @@
 import unittest
 from src.game import Game
+from src.read_json import ReadJson
 
 
 class TestGame(unittest.TestCase):
     def setUp(self) -> None:
-        self.game = Game(["big", "small"], ["big small"])
+        settings = ReadJson().get_settings("settings.json")
+        if not settings:
+            self.fail("ReadJson().get_settings() returned none")
+
+        self.game = Game(
+            settings, ["big", "small"], ["big small"]
+        )
 
     def test_menu_select_basic(self) -> None:
         self.assertEqual(self.game._game_menu_helper("1"), "basic")
@@ -89,6 +96,7 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game.hidden, [])
         self.assertEqual(self.game.answer, "")
         self.assertEqual(self.game.correct_counter, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
