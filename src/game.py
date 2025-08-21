@@ -100,7 +100,18 @@ class Game:
 
         while self.life > 0 and self.correct_counter < len(self.answer):
             self._print_question()
-            letter_input = input("> ")
+
+            print()
+            width = int(self.settings["gallows_width"])
+            # *2-1 because of the additional space added when printing
+            if len(self.hidden) * 2 - 1 > width:
+                width = len(self.hidden) * 2 - 1
+            letter_input = input(
+                # -3 is from additional space from "-> "
+                " " * (self.terminal_width // 2 - width // 2 - 3)
+                + "-> "
+            )
+
             self._letter_in_question(letter_input)
 
         self._reset_game()
@@ -108,6 +119,13 @@ class Game:
 
     def _print_question(self) -> None:
         os.system(self.clear_type)
+
+        self._get_terminal_size()
+
+        print(
+            f"\033[{self.terminal_height//2 - len(self.assets.gallows_1)//2};1H",
+            end="",
+        )
 
         if self.life == 1:
             gallows = self.assets.gallows_6
@@ -125,10 +143,10 @@ class Game:
             gallows = self.assets.gallows_0
 
         for line in gallows:
-            print(line)
+            print(self._center_text_helper(self.terminal_width, line))
 
         print()
-        print(" ".join(self.hidden))
+        print(self._center_text_helper(self.terminal_width, " ".join(self.hidden)))
 
     def _reset_game(self) -> None:
         self.life = int(self.settings["start_life"])
@@ -162,5 +180,17 @@ class Game:
                 self.hidden[idx] = char
                 self.correct_counter += 1
 
+    def create_timer(self) -> None:
+        # # creates new thread for timer to avoid blocking whole program
+        # self._start_timer_thread = threading.Timer(15, self._start_timer)
+        # self._timer_display_thread = threading.Thread(target=self._timer_display)
+        #
+        # self._start_timer_thread.start()
+        # self._timer_display_thread.start()
+        pass
+
     def _start_timer(self) -> None:
+        pass
+
+    def _timer_display(self) -> None:
         pass

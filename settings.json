@@ -1,6 +1,7 @@
 {
-    "data_filename" : "data.json",
-    "start_life" : "7",
-    "menu_width" : "37",
-    "max_time" : "15"
+    "data_filename": "data.json",
+    "start_life": "7",
+    "menu_width": "37",
+    "gallows_width": "8",
+    "max_time": "15"
 }
