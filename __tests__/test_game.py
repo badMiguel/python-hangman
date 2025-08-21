@@ -48,14 +48,47 @@ class TestGame(unittest.TestCase):
         self.game._letter_in_question("")
         self.assertEqual(self.game.life, initial_life - 1)
 
+    def test_game_over(self) -> None:
+        self.game.answer = "big"
+        initial_life = self.game.life
+
+        self.game._letter_in_question("d")
+        self.assertEqual(self.game.life, initial_life - 1)
+
+        self.game._letter_in_question("")
+        self.assertEqual(self.game.life, initial_life - 2)
+
+        self.game._letter_in_question("")
+        self.assertEqual(self.game.life, initial_life - 3)
+
+    def test_game_won(self) -> None:
+        self.game.answer = "big"
+        self.game.hidden = ["_", "_", "_"]
+        self.game.correct_counter = 0
+
+        self.game._letter_in_question("i")
+        self.assertEqual(self.game.correct_counter, 1)
+        self.assertEqual(self.game.hidden, ["_", "i", "_"])
+
+        self.game._letter_in_question("g")
+        self.assertEqual(self.game.correct_counter, 2)
+        self.assertEqual(self.game.hidden, ["_", "i", "g"])
+
+        self.game._letter_in_question("b")
+        self.assertEqual(self.game.correct_counter, 3)
+        self.assertEqual(self.game.hidden, ["b", "i", "g"])
+
     def test_reset_game(self) -> None:
         self.game.life = 2
         self.game.hidden = ["_"]
         self.game.answer = "hello"
+        self.game.correct_counter = 2
+
         self.game._reset_game()
         self.assertEqual(self.game.life, 5)
         self.assertEqual(self.game.hidden, [])
         self.assertEqual(self.game.answer, "")
+        self.assertEqual(self.game.correct_counter, 0)
 
 if __name__ == "__main__":
     unittest.main()
