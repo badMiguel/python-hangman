@@ -1,7 +1,7 @@
 import random
 import shutil
-import os
-import platform
+import os, platform
+import threading, time
 
 
 class Game:
@@ -14,9 +14,15 @@ class Game:
         self.life = int(self.settings["start_life"])
         self.clear_type: str = "clear" if platform.system() == "Linux" else "cls"
 
-        self.hidden = []
+        self.terminal_width = shutil.get_terminal_size().columns
+        self.terminal_height = shutil.get_terminal_size().lines
+
+        self.hidden: list[str] = []
         self.answer = ""
         self.correct_counter = 0
+
+        self._start_timer_thread: threading.Timer | None = None
+        self._timer_display_thread: threading.Thread | None = None
 
     def _center_text_helper(self, width: int, text: str) -> str:
         return text.center(width)
@@ -24,6 +30,29 @@ class Game:
     def game_menu(self) -> None:
         os.system(self.clear_type)
 
+        self._display_menu()
+        choice = input(
+            " " * (self.terminal_width // 2 - int(self.settings["menu_width"]) // 2)
+            + "-> "
+        )
+
+        while choice != "3":
+            os.system(self.clear_type)
+
+            action = self._game_menu_helper(choice)
+            if action is None:
+                pass
+            else:
+                self.start_game(action)
+
+            self._display_menu()
+            choice = input(
+                " " * (self.terminal_width // 2 - int(self.settings["menu_width"]) // 2)
+                + "-> "
+            )
+
+    def _display_menu(self) -> None:
+        self._get_terminal_size()
         menu_text = [
             "",
             "*-----------------------------------*",
@@ -39,28 +68,13 @@ class Game:
             "3. Quit",
             "",
         ]
-        width = shutil.get_terminal_size().columns
+
         for line in menu_text:
-            print(self._center_text_helper(width, line))
-        choice = input(
-            " " * (width // 2 - int(self.settings["menu_width"]) // 2) + "-> "
-        )
+            print(self._center_text_helper(self.terminal_width, line))
 
-        while choice != "3":
-            os.system(self.clear_type)
-
-            action = self._game_menu_helper(choice)
-            if action is None:
-                pass
-            else:
-                self.start_game(action)
-
-            width = shutil.get_terminal_size().columns
-            for line in menu_text:
-                print(self._center_text_helper(width, line))
-            choice = input(
-                " " * (width // 2 - int(self.settings["menu_width"]) // 2) + "-> "
-            )
+    def _get_terminal_size(self) -> None:
+        self.terminal_width = shutil.get_terminal_size().columns
+        self.terminal_height = shutil.get_terminal_size().lines
 
     def _game_menu_helper(self, choice: str) -> str | None:
         if choice == "1":
@@ -75,20 +89,26 @@ class Game:
         self._get_question(level)
 
         while self.life > 0 and self.correct_counter < len(self.answer):
-            print(
-                self.hidden,
-                " - ",
-                self.answer,
-                " - ",
-                f"life:  {self.life}",
-                " - ",
-                f"score: {self.correct_counter}",
-            )
+            # print(
+            #     self.hidden,
+            #     " - ",
+            #     self.answer,
+            #     " - ",
+            #     f"life:  {self.life}",
+            #     " - ",
+            #     f"score: {self.correct_counter}",
+            # )
+            self.print_question()
             letter_input = input("> ")
             self._letter_in_question(letter_input)
 
         self._reset_game()
         os.system(self.clear_type)
+
+    def print_question(self) -> None:
+        for i in self.hidden:
+            print(i, end=" ")
+        print()
 
     def _reset_game(self) -> None:
         self.life = int(self.settings["start_life"])
