@@ -11,6 +11,7 @@ class Game:
         self.life = 5
         self.hidden = []
         self.answer = ""
+        self.correct_counter = 0
         self.clear_type: str = "clear" if platform.system() == "Linux" else "cls"
 
     def _center_text_helper(self, width: int, text: str) -> str:
@@ -63,10 +64,10 @@ class Game:
         return None
 
     def start_game(self, level: str) -> None:
-        question = self._get_question(level)
+        self._get_question(level)
 
-        while self.life > 0:
-            print(self.hidden, question, f"life:  {self.life}")
+        while self.life > 0 and self.correct_counter < len(self.answer):
+            print(self.hidden, self.answer, f"life:  {self.life}")
             letter_input = input("> ")
             self._letter_in_question(letter_input)
 
@@ -77,6 +78,7 @@ class Game:
         self.life = 5
         self.hidden = []
         self.answer = ""
+        self.correct_counter = 0
 
     def _get_question(self, level: str) -> None:
         if level == "basic":
@@ -94,6 +96,7 @@ class Game:
             self.life -= 1
             return
 
-        for letter_idx in range(len(self.answer)):
-            if self.answer[letter_idx] == letter_input:
-                self.hidden[letter_idx] = letter_input
+        for idx, char in enumerate(self.answer):
+            if self.answer[idx] == letter_input:
+                self.hidden[idx] = char
+                self.correct_counter += 1
