@@ -10,3 +10,12 @@ class ReadJson:
             return None
 
         return data["words"], data["phrases"]
+
+    def get_settings(self, filename: str) -> None | dict[str, str]:
+        try: 
+            with open(filename, "r", encoding="utf-8") as file:
+                data = json.load(file)
+        except FileNotFoundError:
+            return None
+
+        return data

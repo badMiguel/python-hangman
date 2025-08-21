@@ -1,17 +1,24 @@
-import get_data
 import sys
+from read_json import ReadJson
 from game import Game
 
+SETTINGS_FILENAME = "settings.json"
 
 def main() -> None:
-    data_filename = "data.json"
-    data = get_data.read(data_filename)
+    reader = ReadJson()
+
+    settings = reader.get_settings(SETTINGS_FILENAME)
+    if not settings:
+        print(f"File {SETTINGS_FILENAME} not found")
+        sys.exit()
+
+    data = reader.get_data(settings["data_filename"])
     if not data:
-        print(f"File {data_filename} not found")
+        print(f"File {settings["data_filename"]} not found")
         sys.exit()
     word_list, phrase_list = data
 
-    game = Game(word_list, phrase_list)
+    game = Game(settings, word_list, phrase_list)
     game.game_menu()
 
 

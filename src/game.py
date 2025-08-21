@@ -5,23 +5,25 @@ import platform
 
 
 class Game:
-    def __init__(self, word_list: list[str], phrase_list: list[str]) -> None:
+    def __init__(
+        self, settings: dict[str, str], word_list: list[str], phrase_list: list[str]
+    ) -> None:
         self.word_list = word_list
         self.phrase_list = phrase_list
-        self.life = 5
+        self.settings = settings
+        self.life = int(self.settings["start_life"])
+        self.clear_type: str = "clear" if platform.system() == "Linux" else "cls"
+
         self.hidden = []
         self.answer = ""
         self.correct_counter = 0
-        self.clear_type: str = "clear" if platform.system() == "Linux" else "cls"
 
     def _center_text_helper(self, width: int, text: str) -> str:
         return text.center(width)
 
     def game_menu(self) -> None:
         os.system(self.clear_type)
-        width = shutil.get_terminal_size().columns
 
-        MENU_TEXT_WIDTH = 37
         menu_text = [
             "",
             "*-----------------------------------*",
@@ -37,9 +39,10 @@ class Game:
             "3. Quit",
             "",
         ]
+        width = shutil.get_terminal_size().columns
         for line in menu_text:
             print(self._center_text_helper(width, line))
-        choice = input(" " * (width // 2 - MENU_TEXT_WIDTH // 2) + "-> ")
+        choice = input(" " * (width // 2 - int(self.settings["menu_width"]) // 2) + "-> ")
 
         while choice != "3":
             os.system(self.clear_type)
@@ -50,9 +53,10 @@ class Game:
             else:
                 self.start_game(action)
 
+            width = shutil.get_terminal_size().columns
             for line in menu_text:
                 print(self._center_text_helper(width, line))
-            choice = input(" " * (width // 2 - MENU_TEXT_WIDTH // 2) + "-> ")
+            choice = input(" " * (width // 2 - int(self.settings["menu_width"]) // 2) + "-> ")
 
     def _game_menu_helper(self, choice: str) -> str | None:
         if choice == "1":
@@ -75,7 +79,7 @@ class Game:
 
     def _reset_game(self) -> None:
         os.system(self.clear_type)
-        self.life = 5
+        self.life = int(self.settings["start_life"])
         self.hidden = []
         self.answer = ""
         self.correct_counter = 0
@@ -100,3 +104,6 @@ class Game:
             if self.answer[idx] == letter_input:
                 self.hidden[idx] = char
                 self.correct_counter += 1
+
+    def _start_timer(self) -> None:
+        pass

@@ -21,11 +21,21 @@ class TestReadJson(unittest.TestCase):
         "words" and "phrases", does NOT require real file exists. Checks that
         returned tuple matches the expected data.
         """
+
+        # for getting word/phrase data
         data = '{"words": ["food"], "phrases": ["hello world"]}'
         with patch("builtins.open", mock_open(read_data=data)):
             result = self.reader.get_data("data.json")
             self.assertEqual(result, (["food"], ["hello world"]))
         self.assertIsInstance(result, tuple)
+
+        # for getting settings/constants
+        settings = '{"hello": "world", "hi": "world"}'
+        with patch("builtins.open", mock_open(read_data=settings)):
+            result = self.reader.get_settings("settings.json")
+            self.assertEqual(result, {"hello": "world", "hi": "world"})
+        self.assertIsInstance(result, dict)
+
 
     def test_not_found(self) -> None:
         """
