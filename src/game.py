@@ -2,6 +2,7 @@ import random
 import shutil
 import os, platform
 import threading, time
+import string
 
 
 class Game:
@@ -98,6 +99,8 @@ class Game:
         self._get_question(level)
         self.create_timer()
 
+        self._reset_letter_was_typed()
+
         while self.life > 0 and self.correct_counter < len(self.answer):
             self._print_question()
 
@@ -116,6 +119,11 @@ class Game:
 
         self._reset_game()
         os.system(self.clear_type)
+
+    def _reset_letter_was_typed(self) -> None:
+        letters = string.ascii_lowercase
+        for letter in letters:
+            self.letter_was_typed[letter] = False
 
     def _print_question(self) -> None:
         os.system(self.clear_type)
@@ -153,6 +161,7 @@ class Game:
         self.hidden = []
         self.answer = ""
         self.correct_counter = 0
+        self._reset_letter_was_typed()
 
     def _get_question(self, level: str) -> None:
         if level == "basic":
@@ -168,6 +177,7 @@ class Game:
                 self.hidden.append("_")
 
     def _letter_in_question(self, letter_input: str) -> None:
+        self.letter_was_typed[letter_input] = True
         if not letter_input or letter_input not in self.answer:
             self.life -= 1
             return
