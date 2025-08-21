@@ -88,9 +88,9 @@ class Game:
             self._letter_in_question(letter_input)
 
         self._reset_game()
+        os.system(self.clear_type)
 
     def _reset_game(self) -> None:
-        os.system(self.clear_type)
         self.life = int(self.settings["start_life"])
         self.hidden = []
         self.answer = ""
@@ -112,6 +112,9 @@ class Game:
     def _letter_in_question(self, letter_input: str) -> None:
         if not letter_input or letter_input not in self.answer:
             self.life -= 1
+            return
+
+        if letter_input in self.hidden:
             return
 
         for idx, char in enumerate(self.answer):

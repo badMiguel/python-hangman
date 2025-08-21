@@ -112,6 +112,23 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game.answer, "")
         self.assertEqual(self.game.correct_counter, 0)
 
+    def test_count_repeated_letter(self) -> None:
+        self.game.answer = "big"
+        self.game.hidden = ["_", "_", "_"]
+        self.game._letter_in_question("i")
+        self.game._letter_in_question("i")
+        self.game._letter_in_question("i")
+        self.assertEqual(self.game.correct_counter, 1)
+
+        self.game._reset_game()
+        self.game.answer = "small"
+        self.game.hidden = ["_", "_", "_", "_", "_"]
+        self.game._letter_in_question("l")
+        self.game._letter_in_question("l")
+        self.game._letter_in_question("l")
+        self.game._letter_in_question("l")
+        self.assertEqual(self.game.correct_counter, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
