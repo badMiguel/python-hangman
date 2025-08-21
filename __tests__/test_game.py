@@ -38,14 +38,26 @@ class TestGame(unittest.TestCase):
 
     def test_letter_in_question_true(self) -> None:
         self.game.answer = "big"
+        self.game.letter_was_typed = {
+            "b": False,
+            "i": False,
+            "g": False,
+        }
         self.game.hidden = ["_", "_", "_"]
         self.game._letter_in_question("i")
+        self.assertTrue(self.game.letter_was_typed["i"])
         self.assertEqual(self.game.hidden, ["_", "i", "_"])
 
     def test_letter_in_question_false(self) -> None:
         self.game.answer = "big"
+        self.game.letter_was_typed = {
+            "b": False,
+            "i": False,
+            "g": False,
+        }
         initial_life = self.game.life
         self.game._letter_in_question("a")
+        self.assertTrue(self.game.letter_was_typed["a"])
         self.assertEqual(self.game.life, initial_life - 1)
 
     def test_letter_in_question_false_empty(self) -> None:
@@ -56,9 +68,15 @@ class TestGame(unittest.TestCase):
 
     def test_game_over(self) -> None:
         self.game.answer = "big"
+        self.game.letter_was_typed = {
+            "b": False,
+            "i": False,
+            "g": False,
+        }
         initial_life = self.game.life
 
         self.game._letter_in_question("d")
+        self.assertTrue(self.game.letter_was_typed["d"])
         self.assertEqual(self.game.life, initial_life - 1)
 
         self.game._letter_in_question("")
@@ -69,35 +87,51 @@ class TestGame(unittest.TestCase):
 
     def test_game_won_words(self) -> None:
         self.game.answer = "big"
+        self.game.letter_was_typed = {
+            "b": False,
+            "i": False,
+            "g": False,
+        }
         self.game.hidden = ["_", "_", "_"]
         self.game.correct_counter = 0
 
         self.game._letter_in_question("i")
+        self.assertTrue(self.game.letter_was_typed["i"])
         self.assertEqual(self.game.correct_counter, 1)
         self.assertEqual(self.game.hidden, ["_", "i", "_"])
 
         self.game._letter_in_question("g")
+        self.assertTrue(self.game.letter_was_typed["g"])
         self.assertEqual(self.game.correct_counter, 2)
         self.assertEqual(self.game.hidden, ["_", "i", "g"])
 
         self.game._letter_in_question("b")
+        self.assertTrue(self.game.letter_was_typed["b"])
         self.assertEqual(self.game.correct_counter, 3)
         self.assertEqual(self.game.hidden, ["b", "i", "g"])
 
     def test_game_won_phrases(self) -> None:
         self.game.answer = "big big"
+        self.game.letter_was_typed = {
+            "b": False,
+            "i": False,
+            "g": False,
+        }
         self.game.hidden = ["_", "_", "_", "_", "_", "_", "_"]
         self.game.correct_counter = 1
 
         self.game._letter_in_question("i")
+        self.assertTrue(self.game.letter_was_typed["i"])
         self.assertEqual(self.game.correct_counter, 3)
         self.assertEqual(self.game.hidden, ["_", "i", "_", "_", "_", "i", "_"])
 
         self.game._letter_in_question("g")
+        self.assertTrue(self.game.letter_was_typed["g"])
         self.assertEqual(self.game.correct_counter, 5)
         self.assertEqual(self.game.hidden, ["_", "i", "g", "_", "_", "i", "g"])
 
         self.game._letter_in_question("b")
+        self.assertTrue(self.game.letter_was_typed["b"])
         self.assertEqual(self.game.correct_counter, 7)
         self.assertEqual(self.game.hidden, ["b", "i", "g", "_", "b", "i", "g"])
 
@@ -115,19 +149,33 @@ class TestGame(unittest.TestCase):
 
     def test_count_repeated_letter(self) -> None:
         self.game.answer = "big"
+        self.game.letter_was_typed = {
+            "b": False,
+            "i": False,
+            "g": False,
+        }
         self.game.hidden = ["_", "_", "_"]
         self.game._letter_in_question("i")
         self.game._letter_in_question("i")
         self.game._letter_in_question("i")
+        self.assertTrue(self.game.letter_was_typed["i"])
         self.assertEqual(self.game.correct_counter, 1)
 
         self.game._reset_game()
         self.game.answer = "small"
+        self.game.letter_was_typed = {
+            "s": False,
+            "m": False,
+            "a": False,
+            "l": False,
+            "l": False,
+        }
         self.game.hidden = ["_", "_", "_", "_", "_"]
         self.game._letter_in_question("l")
         self.game._letter_in_question("l")
         self.game._letter_in_question("l")
         self.game._letter_in_question("l")
+        self.assertTrue(self.game.letter_was_typed["l"])
         self.assertEqual(self.game.correct_counter, 2)
 
 
