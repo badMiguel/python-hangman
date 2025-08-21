@@ -42,7 +42,9 @@ class Game:
         width = shutil.get_terminal_size().columns
         for line in menu_text:
             print(self._center_text_helper(width, line))
-        choice = input(" " * (width // 2 - int(self.settings["menu_width"]) // 2) + "-> ")
+        choice = input(
+            " " * (width // 2 - int(self.settings["menu_width"]) // 2) + "-> "
+        )
 
         while choice != "3":
             os.system(self.clear_type)
@@ -56,7 +58,9 @@ class Game:
             width = shutil.get_terminal_size().columns
             for line in menu_text:
                 print(self._center_text_helper(width, line))
-            choice = input(" " * (width // 2 - int(self.settings["menu_width"]) // 2) + "-> ")
+            choice = input(
+                " " * (width // 2 - int(self.settings["menu_width"]) // 2) + "-> "
+            )
 
     def _game_menu_helper(self, choice: str) -> str | None:
         if choice == "1":
@@ -71,7 +75,15 @@ class Game:
         self._get_question(level)
 
         while self.life > 0 and self.correct_counter < len(self.answer):
-            print(self.hidden, self.answer, f"life:  {self.life}")
+            print(
+                self.hidden,
+                " - ",
+                self.answer,
+                " - ",
+                f"life:  {self.life}",
+                " - ",
+                f"score: {self.correct_counter}",
+            )
             letter_input = input("> ")
             self._letter_in_question(letter_input)
 
@@ -89,9 +101,11 @@ class Game:
             self.answer = random.choice(self.word_list)
         else:
             self.answer = random.choice(self.phrase_list)
+
         for letter in self.answer:
             if letter == " ":
                 self.hidden.append(" ")
+                self.correct_counter += 1
             else:
                 self.hidden.append("_")
 

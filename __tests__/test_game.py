@@ -9,9 +9,7 @@ class TestGame(unittest.TestCase):
         if not settings:
             self.fail("ReadJson().get_settings() returned none")
 
-        self.game = Game(
-            settings, ["big", "small"], ["big small"]
-        )
+        self.game = Game(settings, ["big", "small"], ["big small"])
 
     def test_menu_select_basic(self) -> None:
         self.assertEqual(self.game._game_menu_helper("1"), "basic")
@@ -68,7 +66,7 @@ class TestGame(unittest.TestCase):
         self.game._letter_in_question("")
         self.assertEqual(self.game.life, initial_life - 3)
 
-    def test_game_won(self) -> None:
+    def test_game_won_words(self) -> None:
         self.game.answer = "big"
         self.game.hidden = ["_", "_", "_"]
         self.game.correct_counter = 0
@@ -84,6 +82,23 @@ class TestGame(unittest.TestCase):
         self.game._letter_in_question("b")
         self.assertEqual(self.game.correct_counter, 3)
         self.assertEqual(self.game.hidden, ["b", "i", "g"])
+
+    def test_game_won_phrases(self) -> None:
+        self.game.answer = "big big"
+        self.game.hidden = ["_", "_", "_", "_", "_", "_", "_"]
+        self.game.correct_counter = 1
+
+        self.game._letter_in_question("i")
+        self.assertEqual(self.game.correct_counter, 3)
+        self.assertEqual(self.game.hidden, ["_", "i", "_", "_", "_", "i", "_"])
+
+        self.game._letter_in_question("g")
+        self.assertEqual(self.game.correct_counter, 5)
+        self.assertEqual(self.game.hidden, ["_", "i", "g", "_", "_", "i", "g"])
+
+        self.game._letter_in_question("b")
+        self.assertEqual(self.game.correct_counter, 7)
+        self.assertEqual(self.game.hidden, ["b", "i", "g", "_", "b", "i", "g"])
 
     def test_reset_game(self) -> None:
         self.game.life = 2
