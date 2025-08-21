@@ -1,6 +1,7 @@
 import sys
 from read_json import ReadJson
 from game import Game
+from assets import Assets
 
 SETTINGS_FILENAME = "settings.json"
 
@@ -18,7 +19,7 @@ def main() -> None:
         sys.exit()
     word_list, phrase_list = data
 
-    game = Game(settings, word_list, phrase_list)
+    game = Game(settings, Assets(), word_list, phrase_list)
     game.game_menu()
 
 

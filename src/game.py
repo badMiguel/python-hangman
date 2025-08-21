@@ -6,7 +6,11 @@ import threading, time
 
 class Game:
     def __init__(
-        self, settings: dict[str, str], word_list: list[str], phrase_list: list[str]
+        self,
+        settings: dict[str, str],
+        asset_list,
+        word_list: list[str],
+        phrase_list: list[str],
     ) -> None:
         self.word_list = word_list
         self.phrase_list = phrase_list
@@ -20,9 +24,12 @@ class Game:
         self.hidden: list[str] = []
         self.answer = ""
         self.correct_counter = 0
+        self.letter_was_typed: dict[str, bool] = {}
 
         self._start_timer_thread: threading.Timer | None = None
         self._timer_display_thread: threading.Thread | None = None
+
+        self.assets = asset_list
 
     def _center_text_helper(self, width: int, text: str) -> str:
         return text.center(width)
@@ -69,6 +76,8 @@ class Game:
             "",
         ]
 
+        # move the curson to center the menu
+        print(f"\033[{self.terminal_height//2 - len(menu_text) //2};1H", end="")
         for line in menu_text:
             print(self._center_text_helper(self.terminal_width, line))
 
@@ -87,28 +96,39 @@ class Game:
 
     def start_game(self, level: str) -> None:
         self._get_question(level)
+        self.create_timer()
 
         while self.life > 0 and self.correct_counter < len(self.answer):
-            # print(
-            #     self.hidden,
-            #     " - ",
-            #     self.answer,
-            #     " - ",
-            #     f"life:  {self.life}",
-            #     " - ",
-            #     f"score: {self.correct_counter}",
-            # )
-            self.print_question()
+            self._print_question()
             letter_input = input("> ")
             self._letter_in_question(letter_input)
 
         self._reset_game()
         os.system(self.clear_type)
 
-    def print_question(self) -> None:
-        for i in self.hidden:
-            print(i, end=" ")
+    def _print_question(self) -> None:
+        os.system(self.clear_type)
+
+        if self.life == 1:
+            gallows = self.assets.gallows_6
+        elif self.life == 2:
+            gallows = self.assets.gallows_5
+        elif self.life == 3:
+            gallows = self.assets.gallows_4
+        elif self.life == 4:
+            gallows = self.assets.gallows_3
+        elif self.life == 5:
+            gallows = self.assets.gallows_2
+        elif self.life == 6:
+            gallows = self.assets.gallows_1
+        else:
+            gallows = self.assets.gallows_0
+
+        for line in gallows:
+            print(line)
+
         print()
+        print(" ".join(self.hidden))
 
     def _reset_game(self) -> None:
         self.life = int(self.settings["start_life"])
