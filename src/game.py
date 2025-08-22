@@ -26,6 +26,7 @@ class Game:
         self.answer = ""
         self.correct_counter = 0
         self.letter_was_typed: dict[str, bool] = {}
+        self.letter_list: list[str] = []
 
         self._start_timer_thread: threading.Timer | None = None
         self._timer_display_thread: threading.Thread | None = None
@@ -98,8 +99,7 @@ class Game:
     def start_game(self, level: str) -> None:
         self._get_question(level)
         self.create_timer()
-
-        self._reset_letter_was_typed()
+        self._create_letter_was_typed()
 
         while self.life > 0 and self.correct_counter < len(self.answer):
             self._print_question()
@@ -113,20 +113,26 @@ class Game:
                 # -3 is from additional space from "-> "
                 " " * (self.terminal_width // 2 - width // 2 - 3)
                 + "-> "
-            )
+            ).lower()
 
             self._letter_in_question(letter_input)
 
         self._reset_game()
         os.system(self.clear_type)
 
-    def _reset_letter_was_typed(self) -> None:
+    def _create_letter_was_typed(self) -> None:
+        letter_list: list[str] = []
+
         letters = string.ascii_lowercase
         for letter in letters:
+            letter_list.append(letter)
             self.letter_was_typed[letter] = False
+
+        self.letter_list = letter_list
 
     def _print_question(self) -> None:
         os.system(self.clear_type)
+        print(self.answer)
 
         self._get_terminal_size()
 
@@ -156,12 +162,37 @@ class Game:
         print()
         print(self._center_text_helper(self.terminal_width, " ".join(self.hidden)))
 
+        len_letter_list = len(self.letter_list)
+        portion = len_letter_list // 3
+        list_of_letter_list = [
+            self.letter_list[:portion],
+            self.letter_list[portion : len_letter_list - portion],
+            self.letter_list[len_letter_list - portion : len_letter_list],
+        ]
+
+        for letter_list in list_of_letter_list:
+            print(f"\n\033[{self.terminal_width//2-len(letter_list)+1}C", end="")
+            for char in letter_list:
+                if self.letter_was_typed[char]:
+                    if char in self.answer:
+                        print("\033[32m", end="")
+                        print(char, end=" ")
+                    else:
+                        print("\033[31m", end="")
+                        print(char, end=" ")
+
+                    print("\033[39m", end="")
+                    continue
+                print(char, end=" ")
+
+        print()
+
     def _reset_game(self) -> None:
         self.life = int(self.settings["start_life"])
         self.hidden = []
         self.answer = ""
         self.correct_counter = 0
-        self._reset_letter_was_typed()
+        self._create_letter_was_typed()
 
     def _get_question(self, level: str) -> None:
         if level == "basic":
