@@ -1,10 +1,12 @@
 import sys
 import threading
+import os
 from read_json import ReadJson
 from game import Game
 from assets import Assets
 
-SETTINGS_FILENAME = "settings.json"
+CURRENT_DIR = os.path.basename(os.getcwd())
+SETTINGS_FILENAME = "../settings.json" if CURRENT_DIR == "src" else "settings.json"
 
 def main() -> None:
     reader = ReadJson()
@@ -14,7 +16,8 @@ def main() -> None:
         print(f"File {SETTINGS_FILENAME} not found")
         sys.exit()
 
-    data = reader.get_data(settings["data_filename"])
+    data_filename = f"../{settings["data_filename"]}" if CURRENT_DIR == "src" else settings["data_filename"]
+    data =  reader.get_data(data_filename)
     if not data:
         print(f"File {settings["data_filename"]} not found")
         sys.exit()
