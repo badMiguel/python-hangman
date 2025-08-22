@@ -40,7 +40,16 @@ class Game:
 
     def game_menu(self) -> None:
         os.system(self.clear_type)
+        print(
+                "Important:\n"
+                "The game uses ANSI escape codes. Please ensure your device\n"
+                "supports and maximise your terminal window for best\n"
+                "experience. Modern Windows or VS Code's terminal should\n"
+                "support ANSE escape sequence.\n\nThank you!\n"
+        )
+        _ = input("Press enter to continue.")
 
+        os.system(self.clear_type)
         self._display_menu()
         choice = input(
             " " * (self.terminal_width // 2 - int(self.settings["menu_width"]) // 2)
@@ -110,14 +119,15 @@ class Game:
         ):
             self._print_question()
 
-            print()
-            width = int(self.settings["gallows_width"])
+            len_letter_list = len(self.letter_list)
+            portion = len_letter_list // 3
             # *2-1 because of the additional space added when printing
-            if len(self.hidden) * 2 - 1 > width:
-                width = len(self.hidden) * 2 - 1
+            width = len(self.letter_list[portion : len_letter_list - portion]) * 2 - 1
+
             letter_input = input(
+                "\n" +
                 # -3 is from additional space from "-> "
-                " " * (self.terminal_width // 2 - width // 2 - 3)
+                " " * (self.terminal_width // 2 - width // 2)
                 + "-> "
             ).lower()
 
@@ -143,11 +153,11 @@ class Game:
 
     def _print_question(self) -> None:
         os.system(self.clear_type)
-        print(self.answer)
+        # print(self.answer, end="")
 
         self._get_terminal_size()
         print(
-            f"\033[{self.terminal_height//2 - len(self.assets.gallows_1)//2};1H",
+            f"\033[{self.terminal_height//2 - (len(self.assets.gallows_1)+6)//2};1H",
             end="",
         )
 
@@ -264,6 +274,12 @@ class Game:
         os.system(self.clear_type)
 
         self._get_terminal_size()
+
+        print(
+            f"\033[{self.terminal_height//2 - len(self.assets.gallows_1)//2};1H",
+            end="",
+        )
+
         if self.won:
             text = "Congratulations!"
             print("\033[32m\033[1m", end="")
@@ -275,7 +291,7 @@ class Game:
                 self.assets.happy,
                 "",
                 "That was good! Feel free to play again",
-                ""
+                "",
             ]
         else:
             text = "Game Over!"
@@ -288,7 +304,7 @@ class Game:
                 self.assets.sad,
                 "",
                 "It's ok! You can try again.",
-                ""
+                "",
             ]
 
         for line in end_text:
@@ -300,4 +316,3 @@ class Game:
         print(text, end="")
         print("\033[0m\033[0m", end="")
         print(f"\n\033[{self.terminal_width//2}C", end="")
-
