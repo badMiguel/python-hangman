@@ -249,3 +249,45 @@ class Game:
 
     def _timer_display(self) -> None:
         pass
+
+    def game_end_menu(self) -> None:
+        os.system(self.clear_type)
+
+        self._get_terminal_size()
+        if self.won:
+            text = "Congratulations!"
+            print("\033[32m\033[1m", end="")
+            print(f"\n\033[{self.terminal_width//2 - len(text)//2}C", end="")
+            print(text)
+            print("\033[39m\033[0m", end="")
+            end_text: list[str] = [
+                "",
+                self.assets.happy,
+                "",
+                "That was good! Feel free to play again",
+                ""
+            ]
+        else:
+            text = "Game Over!"
+            print("\033[31m\033[1m", end="")
+            print(f"\n\033[{self.terminal_width//2 - len(text)//2}C", end="")
+            print(text)
+            print("\033[39m\033[0m", end="")
+            end_text: list[str] = [
+                "",
+                self.assets.sad,
+                "",
+                "It's ok! You can try again.",
+                ""
+            ]
+
+        for line in end_text:
+            print(self._center_text_helper(self.terminal_width, line))
+
+        text = "Press 'enter' to exit."
+        print(f"\n\033[{self.terminal_width//2 - len(text)//2}C", end="")
+        print("\033[3m\033[2m", end="")
+        print(text, end="")
+        print("\033[0m\033[0m", end="")
+        print(f"\n\033[{self.terminal_width//2}C", end="")
+
