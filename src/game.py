@@ -121,11 +121,13 @@ class Game:
             and self.life > 0
             and self.correct_counter < len(self.answer)
         ):
+            os.system(self.clear_type)
             self._print_question()
 
             if not self.skip_create_timer:
                 self.create_timer()
-                self.skip_create_timer = True
+                with self.lock:
+                    self.skip_create_timer = True
 
             len_letter_list = len(self.letter_list)
             portion = len_letter_list // 3
@@ -137,12 +139,15 @@ class Game:
             ).lower()
 
             self._letter_in_question(letter_input)
+            if letter_input == "":
+                with self.lock:
+                    self.skip_create_timer = True
 
             if not self.skip_create_timer:
-                self.reset_timer(self.thread_counter-1)
+                self.reset_timer(self.thread_counter - 1)
 
         if not self.stop_event_thread.is_set():
-            self.start_timer_thread.cancel() if self.start_timer_thread else ""
+            self.start_timer_thread.cancel() if self.start_timer_thread else None
             self.game_end_menu()
             _ = input("")
 
@@ -160,8 +165,6 @@ class Game:
         self.letter_list = letter_list
 
     def _print_question(self) -> None:
-        os.system(self.clear_type)
-
         self._get_terminal_size()
         print(
             f"\033[{self.terminal_height//2 - (len(self.assets.gallows_1)+6)//2};1H",
@@ -186,7 +189,7 @@ class Game:
         for line in gallows:
             print(self._center_text_helper(self.terminal_width, line))
 
-        print(self.answer)
+        print()
         print(self._center_text_helper(self.terminal_width, " ".join(self.hidden)))
 
         len_letter_list = len(self.letter_list)
@@ -225,6 +228,9 @@ class Game:
         self._create_letter_was_typed()
         self.won = False
         self.thread_counter = 0
+        self.time_counter = int(self.settings["max_time"])
+        self.skip_create_timer = False
+        self.stop_event_thread.clear()
 
     def _get_question(self, level: str) -> None:
         if level == "basic":
@@ -249,13 +255,15 @@ class Game:
         self.letter_was_typed[letter_input] = True
         if letter_input not in self.answer:
             self.life -= 1
-            self.skip_create_timer = False
+            with self.lock:
+                self.skip_create_timer = False
             return
 
         if letter_input in self.hidden:
             return
 
-        self.skip_create_timer = False
+        with self.lock:
+            self.skip_create_timer = False
         for idx, char in enumerate(self.answer):
             if self.answer[idx] == letter_input:
                 self.hidden[idx] = char
@@ -267,7 +275,6 @@ class Game:
     def reset_timer(self, idx: int) -> None:
         self.start_timer_thread.cancel() if self.start_timer_thread else None
         self.time_counter = int(self.settings["max_time"])
-        self.stop_event_thread.clear()
         with self.lock:
             self.timer_is_stopped[idx] = True
 
@@ -275,7 +282,7 @@ class Game:
         # creates new thread for timer to avoid blocking whole program
         self.start_timer_thread = threading.Timer(
             int(self.settings["max_time"]),
-            self._set_stop_event_thread,
+            self._timer_finished_thread,
             args=(self.thread_counter,),
         )
         self.timer_display_thread = threading.Thread(
@@ -294,11 +301,22 @@ class Game:
 
         self.thread_counter += 1
 
-    def _set_stop_event_thread(self, idx: int) -> None:
+    def _timer_finished_thread(self, idx: int) -> None:
         with self.lock:
             self.timer_is_stopped[idx] = True
-        self.stop_event_thread.set()
-        self.game_end_menu()
+        with self.lock:
+            self.skip_create_timer = False
+        self.life -= 1
+        if self.life <= 0:
+            self.game_end_menu()
+            self.stop_event_thread.set()
+            return
+
+        print("\033[s", end="")
+        self._print_question()
+        print("\033[u", end="", flush=True)
+        self.reset_timer(self.thread_counter - 1)
+        self.create_timer()
 
     def _timer_countdown(self, idx: int) -> None:
         time.sleep(1)
@@ -308,6 +326,7 @@ class Game:
             time.sleep(1)
 
     def _timer_display(self, idx: int) -> None:
+        time.sleep(0.001)
         while self.time_counter > 0 and not self.timer_is_stopped[idx]:
             print("\033[s", end="")
             print("\033[1;1H", end="")
@@ -318,7 +337,7 @@ class Game:
             print(self.time_counter)
             print("\033[39m", end="")
             print("\033[u", end="", flush=True)
-            time.sleep(0.01)
+            time.sleep(0.001)
 
     def game_end_menu(self) -> None:
         os.system(self.clear_type)

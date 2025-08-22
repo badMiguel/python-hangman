@@ -143,6 +143,10 @@ class TestGame(unittest.TestCase):
         self.game.correct_counter = 2
         self.game.letter_was_typed["a"] = True
         self.game.won = True
+        self.game.thread_counter = 9
+        self.game.time_counter = 9
+        self.game.skip_create_timer = True
+        self.game.stop_event_thread.set()
 
         self.game._reset_game()
         self.assertEqual(self.game.life, 7)
@@ -151,6 +155,10 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game.correct_counter, 0)
         self.assertFalse(self.game.letter_was_typed["a"])
         self.assertFalse(self.game.won)
+        self.assertEqual(self.game.thread_counter, 0)
+        self.assertEqual(self.game.time_counter, int(self.game.settings["max_time"]))
+        self.assertEqual(self.game.skip_create_timer, False)
+        self.assertFalse(self.game.stop_event_thread.is_set())
 
     def test_count_repeated_letter(self) -> None:
         self.game.answer = "big"
