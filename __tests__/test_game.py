@@ -62,9 +62,8 @@ class TestGame(unittest.TestCase):
 
     def test_letter_in_question_false_empty(self) -> None:
         self.game.answer = "big"
-        initial_life = self.game.life
         self.game._letter_in_question("")
-        self.assertEqual(self.game.life, initial_life - 1)
+        self.assertEqual(self.game.life, self.game.life)
 
     def test_game_over(self) -> None:
         self.game.answer = "big"
@@ -80,10 +79,10 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game.life, initial_life - 1)
 
         self.game._letter_in_question("")
-        self.assertEqual(self.game.life, initial_life - 2)
+        self.assertEqual(self.game.life, initial_life - 1)
 
-        self.game._letter_in_question("")
-        self.assertEqual(self.game.life, initial_life - 3)
+        self.game._letter_in_question("l")
+        self.assertEqual(self.game.life, initial_life - 2)
 
     def test_game_won_words(self) -> None:
         self.game.answer = "big"

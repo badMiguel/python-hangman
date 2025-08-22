@@ -178,7 +178,7 @@ class Game:
 
     def _letter_in_question(self, letter_input: str) -> None:
         self.letter_was_typed[letter_input] = True
-        if not letter_input or letter_input not in self.answer:
+        if letter_input not in self.answer:
             self.life -= 1
             return
 
