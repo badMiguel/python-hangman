@@ -208,6 +208,12 @@ class Game:
                 self.hidden.append("_")
 
     def _letter_in_question(self, letter_input: str) -> None:
+        if (
+            letter_input in list(self.letter_was_typed.keys())
+            and self.letter_was_typed[letter_input]
+        ):
+            return
+
         self.letter_was_typed[letter_input] = True
         if letter_input not in self.answer:
             self.life -= 1
