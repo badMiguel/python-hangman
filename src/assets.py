@@ -57,3 +57,6 @@ class Assets:
             "|   |   ",
             "|  / \\  ",
         ]
+
+        self.sad = "(づ•́ ᵔ •̀)づ"
+        self.happy = "✺◟(＾∇＾)◞✺"
