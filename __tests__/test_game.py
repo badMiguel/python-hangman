@@ -141,6 +141,8 @@ class TestGame(unittest.TestCase):
         self.game.hidden = ["_"]
         self.game.answer = "hello"
         self.game.correct_counter = 2
+        self.game.letter_was_typed["a"] = True
+        self.game.stop_event_thread.set()
         self.game.won = True
 
         self.game._reset_game()
@@ -148,6 +150,8 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game.hidden, [])
         self.assertEqual(self.game.answer, "")
         self.assertEqual(self.game.correct_counter, 0)
+        self.assertFalse(self.game.letter_was_typed["a"])
+        self.assertFalse(self.game.stop_event_thread.is_set())
         self.assertFalse(self.game.won)
 
     def test_count_repeated_letter(self) -> None:
