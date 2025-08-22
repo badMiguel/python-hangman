@@ -32,6 +32,8 @@ class Game:
         self.start_timer_thread: threading.Timer | None = None
         self.timer_display_thread: threading.Thread | None = None
         self.stop_event_thread: threading.Event = threading.Event()
+        self.time_counter = int(self.settings["max_time"])
+        self.lock = threading.Lock()
 
         self.assets = asset_list
 
@@ -41,11 +43,11 @@ class Game:
     def game_menu(self) -> None:
         os.system(self.clear_type)
         print(
-                "Important:\n"
-                "The game uses ANSI escape codes. Please ensure your device\n"
-                "supports and maximise your terminal window for best\n"
-                "experience. Modern Windows or VS Code's terminal should\n"
-                "support ANSE escape sequence.\n\nThank you!\n"
+            "Important:\n"
+            "The game uses ANSI escape codes. Please ensure your device\n"
+            "supports and maximise your terminal window for best\n"
+            "experience. Modern Windows or VS Code's terminal should\n"
+            "support ANSE escape sequence.\n\nThank you!\n"
         )
         _ = input("Press enter to continue.")
 
@@ -125,7 +127,8 @@ class Game:
             width = len(self.letter_list[portion : len_letter_list - portion]) * 2 - 1
 
             letter_input = input(
-                "\n" +
+                "\n"
+                +
                 # -3 is from additional space from "-> "
                 " " * (self.terminal_width // 2 - width // 2)
                 + "-> "
@@ -153,7 +156,6 @@ class Game:
 
     def _print_question(self) -> None:
         os.system(self.clear_type)
-        # print(self.answer, end="")
 
         self._get_terminal_size()
         print(
@@ -218,6 +220,7 @@ class Game:
         self._create_letter_was_typed()
         self.stop_event_thread.clear()
         self.won = False
+        self.time_counter = int(self.settings["max_time"])
 
     def _get_question(self, level: str) -> None:
         if level == "basic":
@@ -257,18 +260,47 @@ class Game:
 
     def create_timer(self) -> None:
         # creates new thread for timer to avoid blocking whole program
-        self.start_timer_thread = threading.Timer(5, self._set_stop_event_thread)
+        self.start_timer_thread = threading.Timer(
+            int(self.settings["max_time"]), self._set_stop_event_thread
+        )
         self.timer_display_thread = threading.Thread(target=self._timer_display)
+        self.timer_countdown_thread = threading.Thread(target=self._timer_countdown)
 
         self.start_timer_thread.start()
-        # self._timer_display_thread.start()
+        self.timer_display_thread.start()
+        self.timer_countdown_thread.start()
 
     def _set_stop_event_thread(self) -> None:
         self.stop_event_thread.set()
         self.game_end_menu()
 
+    def _timer_countdown(self) -> None:
+        time.sleep(1)
+        while (
+            self.time_counter > 0
+            and self.life > 0
+            and self.correct_counter < len(self.answer)
+        ):
+            with self.lock:
+                self.time_counter -= 1
+            time.sleep(1)
+
     def _timer_display(self) -> None:
-        pass
+        while (
+            self.time_counter > 0
+            and self.life > 0
+            and self.correct_counter < len(self.answer)
+        ):
+            print("\033[s", end="")
+            print("\033[1;1H", end="")
+            print("\033[K", end="")
+            print("Time left: ", end="")
+            if self.time_counter <= 5:
+                print("\033[31m", end="")
+            print(self.time_counter)
+            print("\033[39m", end="")
+            print("\033[u", end="", flush=True)
+            time.sleep(0.01)
 
     def game_end_menu(self) -> None:
         os.system(self.clear_type)
