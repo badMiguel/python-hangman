@@ -108,6 +108,7 @@ class TestGame(unittest.TestCase):
         self.assertTrue(self.game.letter_was_typed["b"])
         self.assertEqual(self.game.correct_counter, 3)
         self.assertEqual(self.game.hidden, ["b", "i", "g"])
+        self.assertTrue(self.game.won)
 
     def test_game_won_phrases(self) -> None:
         self.game.answer = "big big"
@@ -133,18 +134,21 @@ class TestGame(unittest.TestCase):
         self.assertTrue(self.game.letter_was_typed["b"])
         self.assertEqual(self.game.correct_counter, 7)
         self.assertEqual(self.game.hidden, ["b", "i", "g", "_", "b", "i", "g"])
+        self.assertTrue(self.game.won)
 
     def test_reset_game(self) -> None:
         self.game.life = 2
         self.game.hidden = ["_"]
         self.game.answer = "hello"
         self.game.correct_counter = 2
+        self.game.won = True
 
         self.game._reset_game()
         self.assertEqual(self.game.life, 7)
         self.assertEqual(self.game.hidden, [])
         self.assertEqual(self.game.answer, "")
         self.assertEqual(self.game.correct_counter, 0)
+        self.assertFalse(self.game.won)
 
     def test_count_repeated_letter(self) -> None:
         self.game.answer = "big"

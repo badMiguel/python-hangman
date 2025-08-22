@@ -25,6 +25,7 @@ class Game:
         self.hidden: list[str] = []
         self.answer = ""
         self.correct_counter = 0
+        self.won = False
         self.letter_was_typed: dict[str, bool] = {}
         self.letter_list: list[str] = []
 
@@ -165,8 +166,11 @@ class Game:
         len_letter_list = len(self.letter_list)
         portion = len_letter_list // 3
         list_of_letter_list = [
+            # a-h
             self.letter_list[:portion],
+            # i-r
             self.letter_list[portion : len_letter_list - portion],
+            # s-z
             self.letter_list[len_letter_list - portion : len_letter_list],
         ]
 
@@ -193,6 +197,7 @@ class Game:
         self.answer = ""
         self.correct_counter = 0
         self._create_letter_was_typed()
+        self.won = False
 
     def _get_question(self, level: str) -> None:
         if level == "basic":
@@ -226,6 +231,9 @@ class Game:
             if self.answer[idx] == letter_input:
                 self.hidden[idx] = char
                 self.correct_counter += 1
+
+            if self.correct_counter < len(self.answer):
+                self.won = True
 
     def create_timer(self) -> None:
         # # creates new thread for timer to avoid blocking whole program
