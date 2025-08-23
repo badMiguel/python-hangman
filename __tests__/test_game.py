@@ -1,3 +1,4 @@
+import os
 import unittest
 from src.game import Game
 from src.read_json import ReadJson
@@ -190,6 +191,12 @@ class TestGame(unittest.TestCase):
         self.game._letter_in_question("l")
         self.assertTrue(self.game.letter_was_typed["l"])
         self.assertEqual(self.game.correct_counter, 2)
+
+    def test_timer_finished(self) -> None:
+        self.game.life = 1
+        self.game._timer_finished_thread(0)
+        self.assertEqual(self.game.life, 0)
+        self.assertTrue(self.game.stop_event_thread.is_set())
 
 
 if __name__ == "__main__":
