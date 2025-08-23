@@ -1,6 +1,6 @@
 import random
 import shutil
-import os, platform
+import os 
 import threading, time
 import string
 
@@ -17,7 +17,7 @@ class Game:
         self.phrase_list = phrase_list
         self.settings = settings
         self.life = int(self.settings["start_life"])
-        self.clear_type: str = "clear" if platform.system() == "Linux" else "cls"
+        self.clear_type: str = "clear" if os.name == "posix" else "cls"
 
         self.terminal_width = shutil.get_terminal_size().columns
         self.terminal_height = shutil.get_terminal_size().lines
@@ -326,8 +326,14 @@ class Game:
             time.sleep(1)
 
     def _timer_display(self, idx: int) -> None:
-        time.sleep(0.001)
+        time.sleep(0.01)
+        previous_time = -1
         while self.time_counter > 0 and not self.timer_is_stopped[idx]:
+            if previous_time == self.time_counter:
+                time.sleep(0.05)
+                continue
+
+            previous_time = self.time_counter
             print("\033[s", end="")
             print("\033[1;1H", end="")
             print("\033[K", end="")
@@ -337,7 +343,7 @@ class Game:
             print(self.time_counter)
             print("\033[39m", end="")
             print("\033[u", end="", flush=True)
-            time.sleep(0.001)
+            time.sleep(0.05)
 
     def game_end_menu(self) -> None:
         os.system(self.clear_type)
