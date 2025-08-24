@@ -57,6 +57,13 @@ class LetterTracker:
 
 
 class Game:
+    """Main game controller for Hangman
+
+    The class encapsulates various game state including word/phrase lists,
+    current answer and hidden representation, life count, timer threads, and
+    UI assets. Uses `game_menu` and `start_game` to for the game loop.
+    """
+
     def __init__(
         self,
         settings: dict[str, str],
@@ -98,6 +105,12 @@ class Game:
         os.system("clear" if os.name == "posix" else "cls")
 
     def game_menu(self) -> None:
+        """Displays the main menu and handle menu selection.
+
+        This method prints informational notice, waits for user to continue,
+        render out the menu options, and handles user input/action. Loop
+        continues until user exits.
+        """
         self._clear_screen()
         print(
             "Important:\n"
@@ -110,11 +123,8 @@ class Game:
 
         self._clear_screen()
         self._display_menu()
-        choice = input(
-            " "
-            * (self._get_terminal_width() // 2 - int(self.settings["menu_width"]) // 2)
-            + "-> "
-        )
+        choice = input(" " * (self._get_terminal_width() // 2 - int(
+            self.settings["menu_width"]) // 2) + "-> ")
 
         while choice != "3":
             self._clear_screen()
@@ -155,11 +165,20 @@ class Game:
         ]
 
         # move the curson to center the menu
-        print(f"\033[{self._get_terminal_height()//2 - len(menu_text) //2};1H", end="")
+        print(
+            f"\033[{
+                self._get_terminal_height() // 2 - len(menu_text) // 2
+            };1H",
+            end="",
+        )
         for line in menu_text:
             print(self._center_text_helper(self._get_terminal_width(), line))
 
     def game_menu_helper(self, choice: str) -> str | None:
+        """
+        Helper function that returns either `basic` or `intermediate`
+        depending on user input.
+        """
         if choice == "1":
             return "basic"
 
@@ -169,6 +188,12 @@ class Game:
         return None
 
     def start_game(self, level: str) -> None:
+        """Run the main game loop for a single session
+
+        Parameters:
+            - level : str
+                Difficulty level, selects word or phrase list
+        """
         self.get_question(level)
 
         while (
@@ -180,20 +205,20 @@ class Game:
             self._print_question()
 
             if not self.timer["skip_create_timer"]:
-                self.create_timer()
+                self._create_timer()
                 with self.timer["lock"]:
                     self.timer["skip_create_timer"] = True
 
-            len_letter_list = len(self.tracker.letter_list)
-            portion = len_letter_list // 3
+            len_list = len(self.tracker.letter_list)
+            portion = len_list // 3
             # *2-1 because of the additional space added when printing
-            width = (
-                len(self.tracker.letter_list[portion : len_letter_list - portion]) * 2
-                - 1
-            )
-
+            width = len(
+                self.tracker.letter_list[portion:len_list - portion]
+            ) * 2 - 1
             letter_input = input(
-                "\n" + " " * (self._get_terminal_width() // 2 - width // 2) + "-> "
+                "\n" + " " * (
+                    self._get_terminal_width() // 2 - width // 2
+                ) + "-> "
             ).lower()
 
             self.letter_in_question(letter_input)
@@ -203,12 +228,12 @@ class Game:
                 continue
 
             if not self.timer["skip_create_timer"]:
-                self.reset_timer(self.timer["thread_counter"] - 1)
+                self._reset_timer(self.timer["thread_counter"] - 1)
 
         if not self.timer["stop_event_thread"].is_set():
             if self.timer["start_timer_thread"]:
                 self.timer["start_timer_thread"].cancel()
-            self.game_end_menu()
+            self._game_end_menu()
             _ = input("")
 
         self.reset_game()
@@ -238,13 +263,17 @@ class Game:
             # a-h
             self.tracker.letter_list[:portion],
             # i-r
-            self.tracker.letter_list[portion : len_letter_list - portion],
+            self.tracker.letter_list[portion:len_letter_list-portion],
             # s-z
-            self.tracker.letter_list[len_letter_list - portion : len_letter_list],
+            self.tracker.letter_list[len_letter_list-portion:len_letter_list],
         ]
 
         for letter_list in list_of_letter_list:
-            print(f"\n\033[{self._get_terminal_width()//2-len(letter_list)+1}C", end="")
+            print(
+                f"\n\033[{
+                    self._get_terminal_width()//2-len(letter_list)+1
+                }C", end=""
+            )
             for char in letter_list:
                 if self.tracker.is_typed(char):
                     if char in self.state["answer"]:
@@ -261,6 +290,7 @@ class Game:
         print()
 
     def reset_game(self) -> None:
+        """Resets game state, tracker, and timer to their initial values"""
         self.state["life"] = int(self.settings["start_life"])
         self.state["hidden"] = []
         self.state["answer"] = ""
@@ -273,6 +303,12 @@ class Game:
         self.timer["stop_event_thread"].clear()
 
     def get_question(self, level: str) -> None:
+        """Fetch a random word or phrase and set up the hidden puzzle
+
+        Parameters:
+            - level : str
+                Difficulty level based on what user selects from menu
+        """
         if level == "basic":
             self.state["answer"] = self.data.get_random_word()
         else:
@@ -286,9 +322,16 @@ class Game:
                 self.state["hidden"].append("_")
 
     def letter_in_question(self, letter_input: str) -> None:
-        if letter_input in list(
-            self.tracker.letter_was_typed.keys()
-        ) and self.tracker.is_typed(letter_input):
+        """Process a guessed letter and update state, life, and counters
+
+        Parameters:
+            - letter_input : str
+                Guessed user input
+        """
+        if (
+            letter_input in self.tracker.letter_was_typed
+            and self.tracker.is_typed(letter_input)
+        ):
             return
 
         self.tracker.mark_typed(letter_input)
@@ -311,14 +354,14 @@ class Game:
             if self.state["correct_counter"] >= len(self.state["answer"]):
                 self.state["won"] = True
 
-    def reset_timer(self, idx: int) -> None:
+    def _reset_timer(self, idx: int) -> None:
         if self.timer["start_timer_thread"]:
             self.timer["start_timer_thread"].cancel()
         self.timer["time_counter"] = int(self.settings["max_time"])
         with self.timer["lock"]:
             self.timer["timer_is_stopped"][idx] = True
 
-    def create_timer(self) -> None:
+    def _create_timer(self) -> None:
         # creates new thread for timer to avoid blocking whole program
         self.timer["start_timer_thread"] = threading.Timer(
             int(self.settings["max_time"]),
@@ -332,8 +375,9 @@ class Game:
             target=self._timer_countdown, args=(self.timer["thread_counter"],)
         )
 
+        thread_counter = self.timer["thread_counter"]
         with self.timer["lock"]:
-            self.timer["timer_is_stopped"][self.timer["thread_counter"]] = False
+            self.timer["timer_is_stopped"][thread_counter] = False
 
         self.timer["start_timer_thread"].start()
         timer_display_thread.start()
@@ -342,26 +386,33 @@ class Game:
         self.timer["thread_counter"] += 1
 
     def timer_finished_thread(self, idx: int) -> None:
+        """Handle end of timer - lose life, restart, or end game
+
+        Parameter:
+            - idx : int
+                Identifier for `timer_is_stopped`
+        """
         with self.timer["lock"]:
             self.timer["timer_is_stopped"][idx] = True
         with self.timer["lock"]:
             self.timer["skip_create_timer"] = False
         self.state["life"] -= 1
         if self.state["life"] <= 0:
-            self.game_end_menu()
+            self._game_end_menu()
             self.timer["stop_event_thread"].set()
             return
 
         print("\033[s", end="")
         self._print_question()
         print("\033[u", end="", flush=True)
-        self.reset_timer(self.timer["thread_counter"] - 1)
-        self.create_timer()
+        self._reset_timer(self.timer["thread_counter"] - 1)
+        self._create_timer()
 
     def _timer_countdown(self, idx: int) -> None:
         time.sleep(1)
         while (
-            self.timer["time_counter"] > 0 and not self.timer["timer_is_stopped"][idx]
+            self.timer["time_counter"] > 0
+            and not self.timer["timer_is_stopped"][idx]
         ):
             with self.timer["lock"]:
                 self.timer["time_counter"] -= 1
@@ -370,7 +421,8 @@ class Game:
     def _timer_display(self, idx: int) -> None:
         time.sleep(0.01)
         while (
-            self.timer["time_counter"] > 0 and not self.timer["timer_is_stopped"][idx]
+            self.timer["time_counter"] > 0
+            and not self.timer["timer_is_stopped"][idx]
         ):
             print("\033[s", end="")
             print("\033[1;1H", end="")
@@ -383,12 +435,13 @@ class Game:
             print("\033[u", end="", flush=True)
             time.sleep(0.05)
 
-    def game_end_menu(self) -> None:
+    def _game_end_menu(self) -> None:
         self._clear_screen()
 
         print(
             f"\033[{
-                self._get_terminal_height()//2 - len(self.assets.get_gallows(0))//2
+                self._get_terminal_height() // 2 -
+                len(self.assets.get_gallows(0)) // 2
             };1H",
             end="",
         )
@@ -396,7 +449,12 @@ class Game:
         if self.state["won"]:
             text = "Congratulations!"
             print("\033[32m\033[1m", end="")
-            print(f"\n\033[{self._get_terminal_width()//2 - len(text)//2}C", end="")
+            print(
+                f"\n\033[{
+                    self._get_terminal_width() // 2 - len(text) // 2
+                }C",
+                end="",
+            )
             print(text)
             print("\033[39m\033[0m", end="")
             end_text: list[str] = [
@@ -411,7 +469,10 @@ class Game:
         else:
             text = "Game Over!"
             print("\033[31m\033[1m", end="")
-            print(f"\n\033[{self._get_terminal_width()//2 - len(text)//2}C", end="")
+            print(
+                f"\n\033[{self._get_terminal_width() // 2 - len(text) // 2}C",
+                end="",
+            )
             print(text)
             print("\033[39m\033[0m", end="")
             end_text: list[str] = [
@@ -428,7 +489,12 @@ class Game:
             print(self._center_text_helper(self._get_terminal_width(), line))
 
         text = "Press 'enter' to exit."
-        print(f"\n\033[{self._get_terminal_width()//2 - len(text)//2}C", end="")
+        print(
+            f"\n\033[{
+                self._get_terminal_width() // 2 - len(text) // 2
+            }C",
+            end="",
+        )
         print("\033[3m\033[2m", end="")
         print(text, end="")
         print("\033[0m\033[0m", end="")
