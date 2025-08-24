@@ -127,10 +127,10 @@ class TestGame(unittest.TestCase):
         self.game.state["correct_counter"] = 2
         self.game.tracker.mark_typed("a")
         self.game.state["won"] = True
-        self.game.thread_counter = 9
-        self.game.time_counter = 9
-        self.game.skip_create_timer = True
-        self.game.stop_event_thread.set()
+        self.game.timer["thread_counter"] = 9
+        self.game.timer["time_counter"] = 9
+        self.game.timer["skip_create_timer"] = True
+        self.game.timer["stop_event_thread"].set()
 
         self.game.reset_game()
         self.assertEqual(self.game.state["life"], 7)
@@ -139,10 +139,12 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game.state["correct_counter"], 0)
         self.assertFalse(self.game.tracker.is_typed("a"))
         self.assertFalse(self.game.state["won"])
-        self.assertEqual(self.game.thread_counter, 0)
-        self.assertEqual(self.game.time_counter, int(self.game.settings["max_time"]))
-        self.assertEqual(self.game.skip_create_timer, False)
-        self.assertFalse(self.game.stop_event_thread.is_set())
+        self.assertEqual(self.game.timer["thread_counter"], 0)
+        self.assertEqual(
+            self.game.timer["time_counter"], int(self.game.settings["max_time"])
+        )
+        self.assertEqual(self.game.timer["skip_create_timer"], False)
+        self.assertFalse(self.game.timer["stop_event_thread"].is_set())
 
     def test_count_repeated_letter(self) -> None:
         self.game.state["answer"] = "big"
@@ -168,7 +170,7 @@ class TestGame(unittest.TestCase):
         self.game.state["life"] = 1
         self.game.timer_finished_thread(0)
         self.assertEqual(self.game.state["life"], 0)
-        self.assertTrue(self.game.stop_event_thread.is_set())
+        self.assertTrue(self.game.timer["stop_event_thread"].is_set())
 
 
 if __name__ == "__main__":
