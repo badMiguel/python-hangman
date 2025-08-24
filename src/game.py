@@ -1,6 +1,6 @@
 import random
 import shutil
-import os 
+import os
 import threading, time
 import string
 
@@ -121,7 +121,6 @@ class Game:
             and self.life > 0
             and self.correct_counter < len(self.answer)
         ):
-            os.system(self.clear_type)
             self._print_question()
 
             if not self.skip_create_timer:
@@ -142,9 +141,12 @@ class Game:
             if letter_input == "":
                 with self.lock:
                     self.skip_create_timer = True
+                continue
 
             if not self.skip_create_timer:
                 self.reset_timer(self.thread_counter - 1)
+
+            os.system(self.clear_type)
 
         if not self.stop_event_thread.is_set():
             self.start_timer_thread.cancel() if self.start_timer_thread else None
@@ -365,6 +367,8 @@ class Game:
                 "",
                 self.assets.happy,
                 "",
+                "Answer: " + self.answer,
+                "",
                 "That was good! Feel free to play again",
                 "",
             ]
@@ -377,6 +381,8 @@ class Game:
             end_text: list[str] = [
                 "",
                 self.assets.sad,
+                "",
+                "Answer: " + self.answer,
                 "",
                 "It's ok! You can try again.",
                 "",
