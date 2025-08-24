@@ -32,12 +32,15 @@ class Game:
     ) -> None:
         self.data = Data(word_list, phrase_list)
         self.settings = settings
-        self.life = int(self.settings["start_life"])
+        self.assets = assets
+        self.state = {
+            "life": int(self.settings["start_life"]),
+            "hidden": [],
+            "answer": "",
+            "correct_counter": 0,
+            "won": False,
+        }
 
-        self.hidden: list[str] = []
-        self.answer = ""
-        self.correct_counter = 0
-        self.won = False
         self.letter_was_typed: dict[str, bool] = {}
         self.letter_list: list[str] = []
 
@@ -49,16 +52,14 @@ class Game:
         self.skip_create_timer = False
         self.lock = threading.Lock()
 
-        self.assets = assets
-
     def _center_text_helper(self, width: int, text: str) -> str:
         return text.center(width)
 
     def _get_terminal_width(self) -> int:
-        return self.terminal.columns
+        return shutil.get_terminal_size().columns
 
     def _get_terminal_height(self) -> int:
-        return self.terminal.lines
+        return shutil.get_terminal_size().lines
 
     def _clear_screen(self) -> None:
         os.system("clear" if os.name == "posix" else "cls")
@@ -104,7 +105,6 @@ class Game:
         self._clear_screen()
 
     def _display_menu(self) -> None:
-        self._get_terminal_size()
         menu_text = [
             "",
             "*-----------------------------------*",
@@ -126,9 +126,6 @@ class Game:
         for line in menu_text:
             print(self._center_text_helper(self._get_terminal_width(), line))
 
-    def _get_terminal_size(self) -> None:
-        self.terminal = shutil.get_terminal_size()
-
     def game_menu_helper(self, choice: str) -> str | None:
         if choice == "1":
             return "basic"
@@ -144,9 +141,10 @@ class Game:
 
         while (
             not self.stop_event_thread.is_set()
-            and self.life > 0
-            and self.correct_counter < len(self.answer)
+            and self.state["life"] > 0
+            and self.state["correct_counter"] < len(self.state["answer"])
         ):
+            self._clear_screen()
             self._print_question()
 
             if not self.skip_create_timer:
@@ -172,8 +170,6 @@ class Game:
             if not self.skip_create_timer:
                 self.reset_timer(self.thread_counter - 1)
 
-            self._clear_screen()
-
         if not self.stop_event_thread.is_set():
             if self.start_timer_thread:
                 self.start_timer_thread.cancel()
@@ -194,9 +190,7 @@ class Game:
         self.letter_list = letter_list
 
     def _print_question(self) -> None:
-        self._get_terminal_size()
-
-        gallows = self.assets.get_gallows(self.life)
+        gallows = self.assets.get_gallows(self.state["life"])
 
         print(
             f"\033[{self._get_terminal_height()//2 - (len(gallows)+6)//2};1H",
@@ -208,7 +202,9 @@ class Game:
 
         print()
         print(
-            self._center_text_helper(self._get_terminal_width(), " ".join(self.hidden))
+            self._center_text_helper(
+                self._get_terminal_width(), " ".join(self.state["hidden"])
+            )
         )
 
         len_letter_list = len(self.letter_list)
@@ -226,7 +222,7 @@ class Game:
             print(f"\n\033[{self._get_terminal_width()//2-len(letter_list)+1}C", end="")
             for char in letter_list:
                 if self.letter_was_typed[char]:
-                    if char in self.answer:
+                    if char in self.state["answer"]:
                         print("\033[32m", end="")
                         print(char, end=" ")
                     else:
@@ -240,12 +236,12 @@ class Game:
         print()
 
     def reset_game(self) -> None:
-        self.life = int(self.settings["start_life"])
-        self.hidden = []
-        self.answer = ""
-        self.correct_counter = 0
+        self.state["life"] = int(self.settings["start_life"])
+        self.state["hidden"] = []
+        self.state["answer"] = ""
+        self.state["correct_counter"] = 0
         self._create_letter_was_typed()
-        self.won = False
+        self.state["won"] = False
         self.thread_counter = 0
         self.time_counter = int(self.settings["max_time"])
         self.skip_create_timer = False
@@ -253,16 +249,16 @@ class Game:
 
     def get_question(self, level: str) -> None:
         if level == "basic":
-            self.answer = self.data.get_random_word()
+            self.state["answer"] = self.data.get_random_word()
         else:
-            self.answer = self.data.get_random_phrase()
+            self.state["answer"] = self.data.get_random_phrase()
 
-        for letter in self.answer:
+        for letter in self.state["answer"]:
             if letter == " ":
-                self.hidden.append(" ")
-                self.correct_counter += 1
+                self.state["hidden"].append(" ")
+                self.state["correct_counter"] += 1
             else:
-                self.hidden.append("_")
+                self.state["hidden"].append("_")
 
     def letter_in_question(self, letter_input: str) -> None:
         if (
@@ -272,24 +268,24 @@ class Game:
             return
 
         self.letter_was_typed[letter_input] = True
-        if letter_input not in self.answer:
-            self.life -= 1
+        if letter_input not in self.state["answer"]:
+            self.state["life"] -= 1
             with self.lock:
                 self.skip_create_timer = False
             return
 
-        if letter_input in self.hidden:
+        if letter_input in self.state["hidden"]:
             return
 
         with self.lock:
             self.skip_create_timer = False
-        for idx, char in enumerate(self.answer):
-            if self.answer[idx] == letter_input:
-                self.hidden[idx] = char
-                self.correct_counter += 1
+        for idx, char in enumerate(self.state["answer"]):
+            if self.state["answer"][idx] == letter_input:
+                self.state["hidden"][idx] = char
+                self.state["correct_counter"] += 1
 
-            if self.correct_counter >= len(self.answer):
-                self.won = True
+            if self.state["correct_counter"] >= len(self.state["answer"]):
+                self.state["won"] = True
 
     def reset_timer(self, idx: int) -> None:
         if self.start_timer_thread:
@@ -326,8 +322,8 @@ class Game:
             self.timer_is_stopped[idx] = True
         with self.lock:
             self.skip_create_timer = False
-        self.life -= 1
-        if self.life <= 0:
+        self.state["life"] -= 1
+        if self.state["life"] <= 0:
             self.game_end_menu()
             self.stop_event_thread.set()
             return
@@ -347,13 +343,7 @@ class Game:
 
     def _timer_display(self, idx: int) -> None:
         time.sleep(0.01)
-        previous_time = -1
         while self.time_counter > 0 and not self.timer_is_stopped[idx]:
-            if previous_time == self.time_counter:
-                time.sleep(0.05)
-                continue
-
-            previous_time = self.time_counter
             print("\033[s", end="")
             print("\033[1;1H", end="")
             print("\033[K", end="")
@@ -368,8 +358,6 @@ class Game:
     def game_end_menu(self) -> None:
         self._clear_screen()
 
-        self._get_terminal_size()
-
         print(
             f"\033[{
                 self._get_terminal_height()//2 - len(self.assets.get_gallows(0))//2
@@ -377,7 +365,7 @@ class Game:
             end="",
         )
 
-        if self.won:
+        if self.state["won"]:
             text = "Congratulations!"
             print("\033[32m\033[1m", end="")
             print(f"\n\033[{self._get_terminal_width()//2 - len(text)//2}C", end="")
@@ -385,9 +373,9 @@ class Game:
             print("\033[39m\033[0m", end="")
             end_text: list[str] = [
                 "",
-                self.assets.get_emoticon(self.won),
+                self.assets.get_emoticon(self.state["won"]),
                 "",
-                "Answer: " + self.answer,
+                "Answer: " + self.state["answer"],
                 "",
                 "That was good! Feel free to play again",
                 "",
@@ -400,9 +388,9 @@ class Game:
             print("\033[39m\033[0m", end="")
             end_text: list[str] = [
                 "",
-                self.assets.get_emoticon(self.won),
+                self.assets.get_emoticon(self.state["won"]),
                 "",
-                "Answer: " + self.answer,
+                "Answer: " + self.state["answer"],
                 "",
                 "It's ok! You can try again.",
                 "",
