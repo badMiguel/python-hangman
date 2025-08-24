@@ -6,6 +6,22 @@ import time
 import string
 
 
+class Data:
+    """Holds word/phrase data and provides accessors."""
+
+    def __init__(self, word_list: list[str], phrase_list: list[str]) -> None:
+        self.word_list = word_list
+        self.phrase_list = phrase_list
+
+    def get_random_word(self) -> str:
+        """Return a random word from the list."""
+        return random.choice(self.word_list)
+
+    def get_random_phrase(self) -> str:
+        """Return a random phrase from the list."""
+        return random.choice(self.phrase_list)
+
+
 class Game:
     def __init__(
         self,
@@ -14,8 +30,7 @@ class Game:
         word_list: list[str],
         phrase_list: list[str],
     ) -> None:
-        self.word_list = word_list
-        self.phrase_list = phrase_list
+        self.data = Data(word_list, phrase_list)
         self.settings = settings
         self.life = int(self.settings["start_life"])
 
@@ -238,9 +253,9 @@ class Game:
 
     def get_question(self, level: str) -> None:
         if level == "basic":
-            self.answer = random.choice(self.word_list)
+            self.answer = self.data.get_random_word()
         else:
-            self.answer = random.choice(self.phrase_list)
+            self.answer = self.data.get_random_phrase()
 
         for letter in self.answer:
             if letter == " ":

@@ -1,5 +1,5 @@
 import unittest
-from src.game import Game
+from src.game import Game, Data
 from src.read_json import ReadJson
 from src.assets import Assets
 
@@ -10,7 +10,10 @@ class TestGame(unittest.TestCase):
         if not settings:
             self.fail("ReadJson().get_settings() returned none")
 
+        word_list = ["big", "small"]
+        phrase_list = ["big small"]
         self.game = Game(settings, Assets(), ["big", "small"], ["big small"])
+        self.data = Data(word_list, phrase_list)
 
     def test_menu_select_basic(self) -> None:
         self.assertEqual(self.game.game_menu_helper("1"), "basic")
@@ -23,7 +26,7 @@ class TestGame(unittest.TestCase):
 
     def test_get_question_basic(self) -> None:
         self.game.get_question("basic")
-        self.assertIn(self.game.answer, self.game.word_list)
+        self.assertIn(self.game.answer, self.data.word_list)
         if self.game.answer == "big":
             self.assertEqual(self.game.hidden, ["_", "_", "_"])
         else:
@@ -31,7 +34,7 @@ class TestGame(unittest.TestCase):
 
     def test_get_question_intermediate(self) -> None:
         self.game.get_question("intermediate")
-        self.assertIn(self.game.answer, self.game.phrase_list)
+        self.assertIn(self.game.answer, self.data.phrase_list)
         self.assertEqual(
             self.game.hidden, ["_", "_", "_", " ", "_", "_", "_", "_", "_"]
         )
