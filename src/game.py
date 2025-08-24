@@ -18,8 +18,6 @@ class Game:
         self.phrase_list = phrase_list
         self.settings = settings
         self.life = int(self.settings["start_life"])
-        self.clear_type: str = "clear" if os.name == "posix" else "cls"
-
 
         self.hidden: list[str] = []
         self.answer = ""
@@ -47,8 +45,11 @@ class Game:
     def _get_terminal_height(self) -> int:
         return self.terminal.lines
 
+    def _clear_screen(self) -> None:
+        os.system("clear" if os.name == "posix" else "cls")
+
     def game_menu(self) -> None:
-        os.system(self.clear_type)
+        self._clear_screen()
         print(
             "Important:\n"
             "The game uses ANSI escape codes. Please ensure your device\n"
@@ -58,7 +59,7 @@ class Game:
         )
         _ = input("Press enter to continue.")
 
-        os.system(self.clear_type)
+        self._clear_screen()
         self._display_menu()
         choice = input(
             " "
@@ -67,7 +68,7 @@ class Game:
         )
 
         while choice != "3":
-            os.system(self.clear_type)
+            self._clear_screen()
 
             action = self.game_menu_helper(choice)
             if action is None:
@@ -85,7 +86,7 @@ class Game:
                 + "-> "
             )
 
-        os.system(self.clear_type)
+        self._clear_screen()
 
     def _display_menu(self) -> None:
         self._get_terminal_size()
@@ -156,7 +157,7 @@ class Game:
             if not self.skip_create_timer:
                 self.reset_timer(self.thread_counter - 1)
 
-            os.system(self.clear_type)
+            self._clear_screen()
 
         if not self.stop_event_thread.is_set():
             if self.start_timer_thread:
@@ -165,7 +166,7 @@ class Game:
             _ = input("")
 
         self.reset_game()
-        os.system(self.clear_type)
+        self._clear_screen()
 
     def _create_letter_was_typed(self) -> None:
         letter_list: list[str] = []
@@ -350,7 +351,7 @@ class Game:
             time.sleep(0.05)
 
     def game_end_menu(self) -> None:
-        os.system(self.clear_type)
+        self._clear_screen()
 
         self._get_terminal_size()
 
