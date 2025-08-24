@@ -1,3 +1,9 @@
+"""Unit test for the Hangman Game core logic.
+
+Covers menu selection, question generation, letter-guess handling,
+win/loss conditions, time expiry, and state reset behaviour.
+"""
+
 import unittest
 from src.game import Game, Data, LetterTracker
 from src.read_json import ReadJson
@@ -5,6 +11,8 @@ from src.assets import Assets
 
 
 class TestGame(unittest.TestCase):
+    """Test suite for Game logic and supporting helpers"""
+
     def setUp(self) -> None:
         settings = ReadJson().get_settings("settings.json")
         if not settings:
@@ -17,15 +25,19 @@ class TestGame(unittest.TestCase):
         self.tracker = LetterTracker()
 
     def test_menu_select_basic(self) -> None:
+        """Selecting 1 should return basic level"""
         self.assertEqual(self.game.game_menu_helper("1"), "basic")
 
     def test_menu_select_intermediate(self) -> None:
+        """Selecting 2 should return intermediate level"""
         self.assertEqual(self.game.game_menu_helper("2"), "intermediate")
 
     def test_menu_select_none(self) -> None:
+        """Invalid menu selection returns None"""
         self.assertEqual(self.game.game_menu_helper(""), None)
 
     def test_get_question_basic(self) -> None:
+        """Basic level chooses a word and creates list of underscore"""
         self.game.get_question("basic")
         self.assertIn(self.game.state["answer"], self.data.word_list)
         if self.game.state["answer"] == "big":
@@ -34,6 +46,7 @@ class TestGame(unittest.TestCase):
             self.assertEqual(self.game.state["hidden"], ["_", "_", "_", "_", "_"])
 
     def test_get_question_intermediate(self) -> None:
+        """Intermediate level chooses a word and creates list of underscore"""
         self.game.get_question("intermediate")
         self.assertIn(self.game.state["answer"], self.data.phrase_list)
         self.assertEqual(
@@ -41,6 +54,7 @@ class TestGame(unittest.TestCase):
         )
 
     def test_letter_in_question_true(self) -> None:
+        """Correct letter guess reveals positions and marks letter as typed"""
         self.game.state["answer"] = "big"
         self.tracker.reset_is_typed()
         self.game.state["hidden"] = ["_", "_", "_"]
@@ -49,6 +63,7 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game.state["hidden"], ["_", "i", "_"])
 
     def test_letter_in_question_false(self) -> None:
+        """Wrong letter guess deducts life and marks the letter as typed"""
         self.game.state["answer"] = "big"
         self.tracker.reset_is_typed()
         initial_life = self.game.state["life"]
@@ -57,11 +72,13 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game.state["life"], initial_life - 1)
 
     def test_letter_in_question_false_empty(self) -> None:
+        """Empty input is ignored and does not deduct life"""
         self.game.state["answer"] = "big"
         self.game.letter_in_question("")
         self.assertEqual(self.game.state["life"], self.game.state["life"])
 
     def test_game_over(self) -> None:
+        """Wrong guesses deducts life"""
         self.game.state["answer"] = "big"
         self.tracker.reset_is_typed()
         initial_life = self.game.state["life"]
@@ -77,6 +94,7 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game.state["life"], initial_life - 2)
 
     def test_game_won_words(self) -> None:
+        """Correctly guessing all letters in a word sets the `won` to True"""
         self.game.state["answer"] = "big"
         self.tracker.reset_is_typed()
         self.game.state["hidden"] = ["_", "_", "_"]
@@ -99,6 +117,7 @@ class TestGame(unittest.TestCase):
         self.assertTrue(self.game.state["won"])
 
     def test_game_won_phrases(self) -> None:
+        """Correctly guessing all letters of a phrase sets the `won` to True"""
         self.game.state["answer"] = "big big"
         self.tracker.reset_is_typed()
         self.game.state["hidden"] = ["_", "_", "_", "_", "_", "_", "_"]
@@ -121,6 +140,7 @@ class TestGame(unittest.TestCase):
         self.assertTrue(self.game.state["won"])
 
     def test_reset_game(self) -> None:
+        """Should restore default state and clears typed letters"""
         self.game.state["life"] = 2
         self.game.state["hidden"] = ["_"]
         self.game.state["answer"] = "hello"
@@ -147,6 +167,10 @@ class TestGame(unittest.TestCase):
         self.assertFalse(self.game.timer["stop_event_thread"].is_set())
 
     def test_count_repeated_letter(self) -> None:
+        """
+        Repeated guesses of the same letter do not reduce life/increment
+        counter
+        """
         self.game.state["answer"] = "big"
         self.tracker.reset_is_typed()
         self.game.state["hidden"] = ["_", "_", "_"]
@@ -167,6 +191,7 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game.state["correct_counter"], 2)
 
     def test_timer_finished(self) -> None:
+        """Timer reduces life upon reaching 0"""
         self.game.state["life"] = 1
         self.game.timer_finished_thread(0)
         self.assertEqual(self.game.state["life"], 0)
