@@ -1,3 +1,5 @@
+"""Unit test for the reading JSON file"""
+
 import unittest
 from unittest.mock import mock_open, patch
 from src.read_json import ReadJson
@@ -36,13 +38,13 @@ class TestReadJson(unittest.TestCase):
             self.assertEqual(result, {"hello": "world", "hi": "world"})
         self.assertIsInstance(result, dict)
 
-
     def test_not_found(self) -> None:
         """
         Test that `get_data.read` returns None when the file does not exist.
         """
         result = self.reader.get_data("none.json")
         self.assertIs(result, None)
+
 
 if __name__ == "__main__":
     unittest.main()

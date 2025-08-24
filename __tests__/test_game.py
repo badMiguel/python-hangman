@@ -43,14 +43,17 @@ class TestGame(unittest.TestCase):
         if self.game.state["answer"] == "big":
             self.assertEqual(self.game.state["hidden"], ["_", "_", "_"])
         else:
-            self.assertEqual(self.game.state["hidden"], ["_", "_", "_", "_", "_"])
+            self.assertEqual(
+                self.game.state["hidden"], ["_", "_", "_", "_", "_"]
+            )
 
     def test_get_question_intermediate(self) -> None:
         """Intermediate level chooses a word and creates list of underscore"""
         self.game.get_question("intermediate")
         self.assertIn(self.game.state["answer"], self.data.phrase_list)
         self.assertEqual(
-            self.game.state["hidden"], ["_", "_", "_", " ", "_", "_", "_", "_", "_"]
+            self.game.state["hidden"],
+            ["_", "_", "_", " ", "_", "_", "_", "_", "_"]
         )
 
     def test_letter_in_question_true(self) -> None:
@@ -126,17 +129,23 @@ class TestGame(unittest.TestCase):
         self.game.letter_in_question("i")
         self.assertTrue(self.game.tracker.is_typed("i"))
         self.assertEqual(self.game.state["correct_counter"], 3)
-        self.assertEqual(self.game.state["hidden"], ["_", "i", "_", "_", "_", "i", "_"])
+        self.assertEqual(
+            self.game.state["hidden"], ["_", "i", "_", "_", "_", "i", "_"]
+        )
 
         self.game.letter_in_question("g")
         self.assertTrue(self.game.tracker.is_typed("g"))
         self.assertEqual(self.game.state["correct_counter"], 5)
-        self.assertEqual(self.game.state["hidden"], ["_", "i", "g", "_", "_", "i", "g"])
+        self.assertEqual(
+            self.game.state["hidden"], ["_", "i", "g", "_", "_", "i", "g"]
+        )
 
         self.game.letter_in_question("b")
         self.assertTrue(self.game.tracker.is_typed("b"))
         self.assertEqual(self.game.state["correct_counter"], 7)
-        self.assertEqual(self.game.state["hidden"], ["b", "i", "g", "_", "b", "i", "g"])
+        self.assertEqual(
+            self.game.state["hidden"], ["b", "i", "g", "_", "b", "i", "g"]
+        )
         self.assertTrue(self.game.state["won"])
 
     def test_reset_game(self) -> None:
@@ -161,7 +170,8 @@ class TestGame(unittest.TestCase):
         self.assertFalse(self.game.state["won"])
         self.assertEqual(self.game.timer["thread_counter"], 0)
         self.assertEqual(
-            self.game.timer["time_counter"], int(self.game.settings["max_time"])
+            self.game.timer["time_counter"],
+            int(self.game.settings["max_time"])
         )
         self.assertEqual(self.game.timer["skip_create_timer"], False)
         self.assertFalse(self.game.timer["stop_event_thread"].is_set())
