@@ -10,7 +10,7 @@ class Game:
     def __init__(
         self,
         settings: dict[str, str],
-        asset_list,
+        assets,
         word_list: list[str],
         phrase_list: list[str],
     ) -> None:
@@ -38,7 +38,7 @@ class Game:
         self.skip_create_timer = False
         self.lock = threading.Lock()
 
-        self.assets = asset_list
+        self.assets = assets
 
     def _center_text_helper(self, width: int, text: str) -> str:
         return text.center(width)
@@ -171,25 +171,13 @@ class Game:
 
     def _print_question(self) -> None:
         self._get_terminal_size()
+
+        gallows = self.assets.get_gallows(self.life)
+
         print(
-            f"\033[{self.terminal_height//2 - (len(self.assets.gallows_1)+6)//2};1H",
+            f"\033[{self.terminal_height//2 - (len(gallows)+6)//2};1H",
             end="",
         )
-
-        if self.life == 1:
-            gallows = self.assets.gallows_6
-        elif self.life == 2:
-            gallows = self.assets.gallows_5
-        elif self.life == 3:
-            gallows = self.assets.gallows_4
-        elif self.life == 4:
-            gallows = self.assets.gallows_3
-        elif self.life == 5:
-            gallows = self.assets.gallows_2
-        elif self.life == 6:
-            gallows = self.assets.gallows_1
-        else:
-            gallows = self.assets.gallows_0
 
         for line in gallows:
             print(self._center_text_helper(self.terminal_width, line))
@@ -357,7 +345,9 @@ class Game:
         self._get_terminal_size()
 
         print(
-            f"\033[{self.terminal_height//2 - len(self.assets.gallows_1)//2};1H",
+            f"\033[{
+                self.terminal_height//2 - len(self.assets.get_gallows(0))//2
+            };1H",
             end="",
         )
 
@@ -369,7 +359,7 @@ class Game:
             print("\033[39m\033[0m", end="")
             end_text: list[str] = [
                 "",
-                self.assets.happy,
+                self.assets.get_emoticon(self.won),
                 "",
                 "Answer: " + self.answer,
                 "",
@@ -384,7 +374,7 @@ class Game:
             print("\033[39m\033[0m", end="")
             end_text: list[str] = [
                 "",
-                self.assets.sad,
+                self.assets.get_emoticon(self.won),
                 "",
                 "Answer: " + self.answer,
                 "",
