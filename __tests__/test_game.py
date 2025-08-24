@@ -1,4 +1,3 @@
-import os
 import unittest
 from src.game import Game
 from src.read_json import ReadJson
@@ -14,16 +13,16 @@ class TestGame(unittest.TestCase):
         self.game = Game(settings, Assets(), ["big", "small"], ["big small"])
 
     def test_menu_select_basic(self) -> None:
-        self.assertEqual(self.game._game_menu_helper("1"), "basic")
+        self.assertEqual(self.game.game_menu_helper("1"), "basic")
 
     def test_menu_select_intermediate(self) -> None:
-        self.assertEqual(self.game._game_menu_helper("2"), "intermediate")
+        self.assertEqual(self.game.game_menu_helper("2"), "intermediate")
 
     def test_menu_select_none(self) -> None:
-        self.assertEqual(self.game._game_menu_helper(""), None)
+        self.assertEqual(self.game.game_menu_helper(""), None)
 
     def test_get_question_basic(self) -> None:
-        self.game._get_question("basic")
+        self.game.get_question("basic")
         self.assertIn(self.game.answer, self.game.word_list)
         if self.game.answer == "big":
             self.assertEqual(self.game.hidden, ["_", "_", "_"])
@@ -31,7 +30,7 @@ class TestGame(unittest.TestCase):
             self.assertEqual(self.game.hidden, ["_", "_", "_", "_", "_"])
 
     def test_get_question_intermediate(self) -> None:
-        self.game._get_question("intermediate")
+        self.game.get_question("intermediate")
         self.assertIn(self.game.answer, self.game.phrase_list)
         self.assertEqual(
             self.game.hidden, ["_", "_", "_", " ", "_", "_", "_", "_", "_"]
@@ -45,7 +44,7 @@ class TestGame(unittest.TestCase):
             "g": False,
         }
         self.game.hidden = ["_", "_", "_"]
-        self.game._letter_in_question("i")
+        self.game.letter_in_question("i")
         self.assertTrue(self.game.letter_was_typed["i"])
         self.assertEqual(self.game.hidden, ["_", "i", "_"])
 
@@ -57,13 +56,13 @@ class TestGame(unittest.TestCase):
             "g": False,
         }
         initial_life = self.game.life
-        self.game._letter_in_question("a")
+        self.game.letter_in_question("a")
         self.assertTrue(self.game.letter_was_typed["a"])
         self.assertEqual(self.game.life, initial_life - 1)
 
     def test_letter_in_question_false_empty(self) -> None:
         self.game.answer = "big"
-        self.game._letter_in_question("")
+        self.game.letter_in_question("")
         self.assertEqual(self.game.life, self.game.life)
 
     def test_game_over(self) -> None:
@@ -75,14 +74,14 @@ class TestGame(unittest.TestCase):
         }
         initial_life = self.game.life
 
-        self.game._letter_in_question("d")
+        self.game.letter_in_question("d")
         self.assertTrue(self.game.letter_was_typed["d"])
         self.assertEqual(self.game.life, initial_life - 1)
 
-        self.game._letter_in_question("")
+        self.game.letter_in_question("")
         self.assertEqual(self.game.life, initial_life - 1)
 
-        self.game._letter_in_question("l")
+        self.game.letter_in_question("l")
         self.assertEqual(self.game.life, initial_life - 2)
 
     def test_game_won_words(self) -> None:
@@ -95,17 +94,17 @@ class TestGame(unittest.TestCase):
         self.game.hidden = ["_", "_", "_"]
         self.game.correct_counter = 0
 
-        self.game._letter_in_question("i")
+        self.game.letter_in_question("i")
         self.assertTrue(self.game.letter_was_typed["i"])
         self.assertEqual(self.game.correct_counter, 1)
         self.assertEqual(self.game.hidden, ["_", "i", "_"])
 
-        self.game._letter_in_question("g")
+        self.game.letter_in_question("g")
         self.assertTrue(self.game.letter_was_typed["g"])
         self.assertEqual(self.game.correct_counter, 2)
         self.assertEqual(self.game.hidden, ["_", "i", "g"])
 
-        self.game._letter_in_question("b")
+        self.game.letter_in_question("b")
         self.assertTrue(self.game.letter_was_typed["b"])
         self.assertEqual(self.game.correct_counter, 3)
         self.assertEqual(self.game.hidden, ["b", "i", "g"])
@@ -121,17 +120,17 @@ class TestGame(unittest.TestCase):
         self.game.hidden = ["_", "_", "_", "_", "_", "_", "_"]
         self.game.correct_counter = 1
 
-        self.game._letter_in_question("i")
+        self.game.letter_in_question("i")
         self.assertTrue(self.game.letter_was_typed["i"])
         self.assertEqual(self.game.correct_counter, 3)
         self.assertEqual(self.game.hidden, ["_", "i", "_", "_", "_", "i", "_"])
 
-        self.game._letter_in_question("g")
+        self.game.letter_in_question("g")
         self.assertTrue(self.game.letter_was_typed["g"])
         self.assertEqual(self.game.correct_counter, 5)
         self.assertEqual(self.game.hidden, ["_", "i", "g", "_", "_", "i", "g"])
 
-        self.game._letter_in_question("b")
+        self.game.letter_in_question("b")
         self.assertTrue(self.game.letter_was_typed["b"])
         self.assertEqual(self.game.correct_counter, 7)
         self.assertEqual(self.game.hidden, ["b", "i", "g", "_", "b", "i", "g"])
@@ -149,7 +148,7 @@ class TestGame(unittest.TestCase):
         self.game.skip_create_timer = True
         self.game.stop_event_thread.set()
 
-        self.game._reset_game()
+        self.game.reset_game()
         self.assertEqual(self.game.life, 7)
         self.assertEqual(self.game.hidden, [])
         self.assertEqual(self.game.answer, "")
@@ -169,32 +168,31 @@ class TestGame(unittest.TestCase):
             "g": False,
         }
         self.game.hidden = ["_", "_", "_"]
-        self.game._letter_in_question("i")
-        self.game._letter_in_question("i")
-        self.game._letter_in_question("i")
+        self.game.letter_in_question("i")
+        self.game.letter_in_question("i")
+        self.game.letter_in_question("i")
         self.assertTrue(self.game.letter_was_typed["i"])
         self.assertEqual(self.game.correct_counter, 1)
 
-        self.game._reset_game()
+        self.game.reset_game()
         self.game.answer = "small"
         self.game.letter_was_typed = {
             "s": False,
             "m": False,
             "a": False,
             "l": False,
-            "l": False,
         }
         self.game.hidden = ["_", "_", "_", "_", "_"]
-        self.game._letter_in_question("l")
-        self.game._letter_in_question("l")
-        self.game._letter_in_question("l")
-        self.game._letter_in_question("l")
+        self.game.letter_in_question("l")
+        self.game.letter_in_question("l")
+        self.game.letter_in_question("l")
+        self.game.letter_in_question("l")
         self.assertTrue(self.game.letter_was_typed["l"])
         self.assertEqual(self.game.correct_counter, 2)
 
     def test_timer_finished(self) -> None:
         self.game.life = 1
-        self.game._timer_finished_thread(0)
+        self.game.timer_finished_thread(0)
         self.assertEqual(self.game.life, 0)
         self.assertTrue(self.game.stop_event_thread.is_set())
 
