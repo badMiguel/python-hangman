@@ -35,9 +35,9 @@ class LetterTracker:
     def __init__(self) -> None:
         self.letter_was_typed: dict[str, bool] = {}
         self.letter_list: list[str] = []
+        self._initialise()
 
-    def initialise(self) -> None:
-        """Creates a dict of letters and marks them as untyped (false)"""
+    def _initialise(self) -> None:
         for letter in string.ascii_lowercase:
             self.letter_list.append(letter)
             self.letter_was_typed[letter] = False
@@ -49,6 +49,11 @@ class LetterTracker:
     def is_typed(self, letter: str) -> bool:
         """Returns `True` if `letter` was typed before"""
         return self.letter_was_typed[letter]
+
+    def reset_is_typed(self) -> None:
+        """Resets `letter_was_typed` to all `False`"""
+        for letter in self.letter_was_typed:
+            self.letter_was_typed[letter] = False
 
 
 class Game:
@@ -164,7 +169,6 @@ class Game:
 
     def start_game(self, level: str) -> None:
         self.get_question(level)
-        self.tracker.initialise()
 
         while (
             not self.stop_event_thread.is_set()
@@ -260,7 +264,7 @@ class Game:
         self.state["hidden"] = []
         self.state["answer"] = ""
         self.state["correct_counter"] = 0
-        self.tracker.initialise()
+        self.tracker.reset_is_typed()
         self.state["won"] = False
         self.thread_counter = 0
         self.time_counter = int(self.settings["max_time"])

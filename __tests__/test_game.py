@@ -42,7 +42,7 @@ class TestGame(unittest.TestCase):
 
     def test_letter_in_question_true(self) -> None:
         self.game.state["answer"] = "big"
-        self.tracker.initialise()
+        self.tracker.reset_is_typed()
         self.game.state["hidden"] = ["_", "_", "_"]
         self.game.letter_in_question("i")
         self.assertTrue(self.game.tracker.is_typed("i"))
@@ -50,7 +50,7 @@ class TestGame(unittest.TestCase):
 
     def test_letter_in_question_false(self) -> None:
         self.game.state["answer"] = "big"
-        self.tracker.initialise()
+        self.tracker.reset_is_typed()
         initial_life = self.game.state["life"]
         self.game.letter_in_question("a")
         self.assertTrue(self.game.tracker.is_typed("a"))
@@ -63,7 +63,7 @@ class TestGame(unittest.TestCase):
 
     def test_game_over(self) -> None:
         self.game.state["answer"] = "big"
-        self.tracker.initialise()
+        self.tracker.reset_is_typed()
         initial_life = self.game.state["life"]
 
         self.game.letter_in_question("d")
@@ -78,7 +78,7 @@ class TestGame(unittest.TestCase):
 
     def test_game_won_words(self) -> None:
         self.game.state["answer"] = "big"
-        self.tracker.initialise()
+        self.tracker.reset_is_typed()
         self.game.state["hidden"] = ["_", "_", "_"]
         self.game.state["correct_counter"] = 0
 
@@ -100,7 +100,7 @@ class TestGame(unittest.TestCase):
 
     def test_game_won_phrases(self) -> None:
         self.game.state["answer"] = "big big"
-        self.tracker.initialise()
+        self.tracker.reset_is_typed()
         self.game.state["hidden"] = ["_", "_", "_", "_", "_", "_", "_"]
         self.game.state["correct_counter"] = 1
 
@@ -146,7 +146,7 @@ class TestGame(unittest.TestCase):
 
     def test_count_repeated_letter(self) -> None:
         self.game.state["answer"] = "big"
-        self.tracker.initialise()
+        self.tracker.reset_is_typed()
         self.game.state["hidden"] = ["_", "_", "_"]
         self.game.letter_in_question("i")
         self.game.letter_in_question("i")
