@@ -1,3 +1,10 @@
+"""Core game logic for the Hangman game.
+
+This module implements the `Game` class which controls the game state, question
+selection, input processing, timer management, and screen rendering (terminal).
+
+"""
+
 import random
 import shutil
 import os
@@ -22,6 +29,28 @@ class Data:
         return random.choice(self.phrase_list)
 
 
+class LetterTracker:
+    """Tracks letter typed and letter list"""
+
+    def __init__(self) -> None:
+        self.letter_was_typed: dict[str, bool] = {}
+        self.letter_list: list[str] = []
+
+    def initialise(self) -> None:
+        """Creates a dict of letters and marks them as untyped (false)"""
+        for letter in string.ascii_lowercase:
+            self.letter_list.append(letter)
+            self.letter_was_typed[letter] = False
+
+    def mark_typed(self, letter: str) -> None:
+        """Mark a letter as typed"""
+        self.letter_was_typed[letter] = True
+
+    def is_typed(self, letter: str) -> bool:
+        """Returns `True` if `letter` was typed before"""
+        return self.letter_was_typed[letter]
+
+
 class Game:
     def __init__(
         self,
@@ -40,9 +69,7 @@ class Game:
             "correct_counter": 0,
             "won": False,
         }
-
-        self.letter_was_typed: dict[str, bool] = {}
-        self.letter_list: list[str] = []
+        self.tracker = LetterTracker()
 
         self.start_timer_thread: threading.Timer | None = None
         self.stop_event_thread: threading.Event = threading.Event()
@@ -137,7 +164,7 @@ class Game:
 
     def start_game(self, level: str) -> None:
         self.get_question(level)
-        self._create_letter_was_typed()
+        self.tracker.initialise()
 
         while (
             not self.stop_event_thread.is_set()
@@ -152,10 +179,13 @@ class Game:
                 with self.lock:
                     self.skip_create_timer = True
 
-            len_letter_list = len(self.letter_list)
+            len_letter_list = len(self.tracker.letter_list)
             portion = len_letter_list // 3
             # *2-1 because of the additional space added when printing
-            width = len(self.letter_list[portion : len_letter_list - portion]) * 2 - 1
+            width = (
+                len(self.tracker.letter_list[portion : len_letter_list - portion]) * 2
+                - 1
+            )
 
             letter_input = input(
                 "\n" + " " * (self._get_terminal_width() // 2 - width // 2) + "-> "
@@ -179,16 +209,6 @@ class Game:
         self.reset_game()
         self._clear_screen()
 
-    def _create_letter_was_typed(self) -> None:
-        letter_list: list[str] = []
-
-        letters = string.ascii_lowercase
-        for letter in letters:
-            letter_list.append(letter)
-            self.letter_was_typed[letter] = False
-
-        self.letter_list = letter_list
-
     def _print_question(self) -> None:
         gallows = self.assets.get_gallows(self.state["life"])
 
@@ -207,21 +227,21 @@ class Game:
             )
         )
 
-        len_letter_list = len(self.letter_list)
+        len_letter_list = len(self.tracker.letter_list)
         portion = len_letter_list // 3
         list_of_letter_list = [
             # a-h
-            self.letter_list[:portion],
+            self.tracker.letter_list[:portion],
             # i-r
-            self.letter_list[portion : len_letter_list - portion],
+            self.tracker.letter_list[portion : len_letter_list - portion],
             # s-z
-            self.letter_list[len_letter_list - portion : len_letter_list],
+            self.tracker.letter_list[len_letter_list - portion : len_letter_list],
         ]
 
         for letter_list in list_of_letter_list:
             print(f"\n\033[{self._get_terminal_width()//2-len(letter_list)+1}C", end="")
             for char in letter_list:
-                if self.letter_was_typed[char]:
+                if self.tracker.is_typed(char):
                     if char in self.state["answer"]:
                         print("\033[32m", end="")
                         print(char, end=" ")
@@ -240,7 +260,7 @@ class Game:
         self.state["hidden"] = []
         self.state["answer"] = ""
         self.state["correct_counter"] = 0
-        self._create_letter_was_typed()
+        self.tracker.initialise()
         self.state["won"] = False
         self.thread_counter = 0
         self.time_counter = int(self.settings["max_time"])
@@ -261,13 +281,12 @@ class Game:
                 self.state["hidden"].append("_")
 
     def letter_in_question(self, letter_input: str) -> None:
-        if (
-            letter_input in list(self.letter_was_typed.keys())
-            and self.letter_was_typed[letter_input]
-        ):
+        if letter_input in list(
+            self.tracker.letter_was_typed.keys()
+        ) and self.tracker.is_typed(letter_input):
             return
 
-        self.letter_was_typed[letter_input] = True
+        self.tracker.mark_typed(letter_input)
         if letter_input not in self.state["answer"]:
             self.state["life"] -= 1
             with self.lock:

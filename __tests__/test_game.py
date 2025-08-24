@@ -1,5 +1,5 @@
 import unittest
-from src.game import Game, Data
+from src.game import Game, Data, LetterTracker
 from src.read_json import ReadJson
 from src.assets import Assets
 
@@ -14,6 +14,7 @@ class TestGame(unittest.TestCase):
         phrase_list = ["big small"]
         self.game = Game(settings, Assets(), ["big", "small"], ["big small"])
         self.data = Data(word_list, phrase_list)
+        self.tracker = LetterTracker()
 
     def test_menu_select_basic(self) -> None:
         self.assertEqual(self.game.game_menu_helper("1"), "basic")
@@ -41,26 +42,18 @@ class TestGame(unittest.TestCase):
 
     def test_letter_in_question_true(self) -> None:
         self.game.state["answer"] = "big"
-        self.game.letter_was_typed = {
-            "b": False,
-            "i": False,
-            "g": False,
-        }
+        self.tracker.initialise()
         self.game.state["hidden"] = ["_", "_", "_"]
         self.game.letter_in_question("i")
-        self.assertTrue(self.game.letter_was_typed["i"])
+        self.assertTrue(self.game.tracker.is_typed("i"))
         self.assertEqual(self.game.state["hidden"], ["_", "i", "_"])
 
     def test_letter_in_question_false(self) -> None:
         self.game.state["answer"] = "big"
-        self.game.letter_was_typed = {
-            "b": False,
-            "i": False,
-            "g": False,
-        }
+        self.tracker.initialise()
         initial_life = self.game.state["life"]
         self.game.letter_in_question("a")
-        self.assertTrue(self.game.letter_was_typed["a"])
+        self.assertTrue(self.game.tracker.is_typed("a"))
         self.assertEqual(self.game.state["life"], initial_life - 1)
 
     def test_letter_in_question_false_empty(self) -> None:
@@ -70,15 +63,11 @@ class TestGame(unittest.TestCase):
 
     def test_game_over(self) -> None:
         self.game.state["answer"] = "big"
-        self.game.letter_was_typed = {
-            "b": False,
-            "i": False,
-            "g": False,
-        }
+        self.tracker.initialise()
         initial_life = self.game.state["life"]
 
         self.game.letter_in_question("d")
-        self.assertTrue(self.game.letter_was_typed["d"])
+        self.assertTrue(self.game.tracker.is_typed("d"))
         self.assertEqual(self.game.state["life"], initial_life - 1)
 
         self.game.letter_in_question("")
@@ -89,52 +78,44 @@ class TestGame(unittest.TestCase):
 
     def test_game_won_words(self) -> None:
         self.game.state["answer"] = "big"
-        self.game.letter_was_typed = {
-            "b": False,
-            "i": False,
-            "g": False,
-        }
+        self.tracker.initialise()
         self.game.state["hidden"] = ["_", "_", "_"]
         self.game.state["correct_counter"] = 0
 
         self.game.letter_in_question("i")
-        self.assertTrue(self.game.letter_was_typed["i"])
+        self.assertTrue(self.game.tracker.is_typed("i"))
         self.assertEqual(self.game.state["correct_counter"], 1)
         self.assertEqual(self.game.state["hidden"], ["_", "i", "_"])
 
         self.game.letter_in_question("g")
-        self.assertTrue(self.game.letter_was_typed["g"])
+        self.assertTrue(self.game.tracker.is_typed("g"))
         self.assertEqual(self.game.state["correct_counter"], 2)
         self.assertEqual(self.game.state["hidden"], ["_", "i", "g"])
 
         self.game.letter_in_question("b")
-        self.assertTrue(self.game.letter_was_typed["b"])
+        self.assertTrue(self.game.tracker.is_typed("b"))
         self.assertEqual(self.game.state["correct_counter"], 3)
         self.assertEqual(self.game.state["hidden"], ["b", "i", "g"])
         self.assertTrue(self.game.state["won"])
 
     def test_game_won_phrases(self) -> None:
         self.game.state["answer"] = "big big"
-        self.game.letter_was_typed = {
-            "b": False,
-            "i": False,
-            "g": False,
-        }
+        self.tracker.initialise()
         self.game.state["hidden"] = ["_", "_", "_", "_", "_", "_", "_"]
         self.game.state["correct_counter"] = 1
 
         self.game.letter_in_question("i")
-        self.assertTrue(self.game.letter_was_typed["i"])
+        self.assertTrue(self.game.tracker.is_typed("i"))
         self.assertEqual(self.game.state["correct_counter"], 3)
         self.assertEqual(self.game.state["hidden"], ["_", "i", "_", "_", "_", "i", "_"])
 
         self.game.letter_in_question("g")
-        self.assertTrue(self.game.letter_was_typed["g"])
+        self.assertTrue(self.game.tracker.is_typed("g"))
         self.assertEqual(self.game.state["correct_counter"], 5)
         self.assertEqual(self.game.state["hidden"], ["_", "i", "g", "_", "_", "i", "g"])
 
         self.game.letter_in_question("b")
-        self.assertTrue(self.game.letter_was_typed["b"])
+        self.assertTrue(self.game.tracker.is_typed("b"))
         self.assertEqual(self.game.state["correct_counter"], 7)
         self.assertEqual(self.game.state["hidden"], ["b", "i", "g", "_", "b", "i", "g"])
         self.assertTrue(self.game.state["won"])
@@ -144,7 +125,7 @@ class TestGame(unittest.TestCase):
         self.game.state["hidden"] = ["_"]
         self.game.state["answer"] = "hello"
         self.game.state["correct_counter"] = 2
-        self.game.letter_was_typed["a"] = True
+        self.game.tracker.mark_typed("a")
         self.game.state["won"] = True
         self.game.thread_counter = 9
         self.game.time_counter = 9
@@ -156,7 +137,7 @@ class TestGame(unittest.TestCase):
         self.assertEqual(self.game.state["hidden"], [])
         self.assertEqual(self.game.state["answer"], "")
         self.assertEqual(self.game.state["correct_counter"], 0)
-        self.assertFalse(self.game.letter_was_typed["a"])
+        self.assertFalse(self.game.tracker.is_typed("a"))
         self.assertFalse(self.game.state["won"])
         self.assertEqual(self.game.thread_counter, 0)
         self.assertEqual(self.game.time_counter, int(self.game.settings["max_time"]))
@@ -165,32 +146,22 @@ class TestGame(unittest.TestCase):
 
     def test_count_repeated_letter(self) -> None:
         self.game.state["answer"] = "big"
-        self.game.letter_was_typed = {
-            "b": False,
-            "i": False,
-            "g": False,
-        }
+        self.tracker.initialise()
         self.game.state["hidden"] = ["_", "_", "_"]
         self.game.letter_in_question("i")
         self.game.letter_in_question("i")
         self.game.letter_in_question("i")
-        self.assertTrue(self.game.letter_was_typed["i"])
+        self.assertTrue(self.game.tracker.is_typed("i"))
         self.assertEqual(self.game.state["correct_counter"], 1)
 
         self.game.reset_game()
         self.game.state["answer"] = "small"
-        self.game.letter_was_typed = {
-            "s": False,
-            "m": False,
-            "a": False,
-            "l": False,
-        }
         self.game.state["hidden"] = ["_", "_", "_", "_", "_"]
         self.game.letter_in_question("l")
         self.game.letter_in_question("l")
         self.game.letter_in_question("l")
         self.game.letter_in_question("l")
-        self.assertTrue(self.game.letter_was_typed["l"])
+        self.assertTrue(self.game.tracker.is_typed("l"))
         self.assertEqual(self.game.state["correct_counter"], 2)
 
     def test_timer_finished(self) -> None:
