@@ -20,8 +20,6 @@ class Game:
         self.life = int(self.settings["start_life"])
         self.clear_type: str = "clear" if os.name == "posix" else "cls"
 
-        self.terminal_width = shutil.get_terminal_size().columns
-        self.terminal_height = shutil.get_terminal_size().lines
 
         self.hidden: list[str] = []
         self.answer = ""
@@ -43,6 +41,12 @@ class Game:
     def _center_text_helper(self, width: int, text: str) -> str:
         return text.center(width)
 
+    def _get_terminal_width(self) -> int:
+        return self.terminal.columns
+
+    def _get_terminal_height(self) -> int:
+        return self.terminal.lines
+
     def game_menu(self) -> None:
         os.system(self.clear_type)
         print(
@@ -57,7 +61,8 @@ class Game:
         os.system(self.clear_type)
         self._display_menu()
         choice = input(
-            " " * (self.terminal_width // 2 - int(self.settings["menu_width"]) // 2)
+            " "
+            * (self._get_terminal_width() // 2 - int(self.settings["menu_width"]) // 2)
             + "-> "
         )
 
@@ -72,7 +77,11 @@ class Game:
 
             self._display_menu()
             choice = input(
-                " " * (self.terminal_width // 2 - int(self.settings["menu_width"]) // 2)
+                " "
+                * (
+                    self._get_terminal_width() // 2
+                    - int(self.settings["menu_width"]) // 2
+                )
                 + "-> "
             )
 
@@ -97,13 +106,12 @@ class Game:
         ]
 
         # move the curson to center the menu
-        print(f"\033[{self.terminal_height//2 - len(menu_text) //2};1H", end="")
+        print(f"\033[{self._get_terminal_height()//2 - len(menu_text) //2};1H", end="")
         for line in menu_text:
-            print(self._center_text_helper(self.terminal_width, line))
+            print(self._center_text_helper(self._get_terminal_width(), line))
 
     def _get_terminal_size(self) -> None:
-        self.terminal_width = shutil.get_terminal_size().columns
-        self.terminal_height = shutil.get_terminal_size().lines
+        self.terminal = shutil.get_terminal_size()
 
     def game_menu_helper(self, choice: str) -> str | None:
         if choice == "1":
@@ -136,7 +144,7 @@ class Game:
             width = len(self.letter_list[portion : len_letter_list - portion]) * 2 - 1
 
             letter_input = input(
-                "\n" + " " * (self.terminal_width // 2 - width // 2) + "-> "
+                "\n" + " " * (self._get_terminal_width() // 2 - width // 2) + "-> "
             ).lower()
 
             self.letter_in_question(letter_input)
@@ -175,15 +183,17 @@ class Game:
         gallows = self.assets.get_gallows(self.life)
 
         print(
-            f"\033[{self.terminal_height//2 - (len(gallows)+6)//2};1H",
+            f"\033[{self._get_terminal_height()//2 - (len(gallows)+6)//2};1H",
             end="",
         )
 
         for line in gallows:
-            print(self._center_text_helper(self.terminal_width, line))
+            print(self._center_text_helper(self._get_terminal_width(), line))
 
         print()
-        print(self._center_text_helper(self.terminal_width, " ".join(self.hidden)))
+        print(
+            self._center_text_helper(self._get_terminal_width(), " ".join(self.hidden))
+        )
 
         len_letter_list = len(self.letter_list)
         portion = len_letter_list // 3
@@ -197,7 +207,7 @@ class Game:
         ]
 
         for letter_list in list_of_letter_list:
-            print(f"\n\033[{self.terminal_width//2-len(letter_list)+1}C", end="")
+            print(f"\n\033[{self._get_terminal_width()//2-len(letter_list)+1}C", end="")
             for char in letter_list:
                 if self.letter_was_typed[char]:
                     if char in self.answer:
@@ -346,7 +356,7 @@ class Game:
 
         print(
             f"\033[{
-                self.terminal_height//2 - len(self.assets.get_gallows(0))//2
+                self._get_terminal_height()//2 - len(self.assets.get_gallows(0))//2
             };1H",
             end="",
         )
@@ -354,7 +364,7 @@ class Game:
         if self.won:
             text = "Congratulations!"
             print("\033[32m\033[1m", end="")
-            print(f"\n\033[{self.terminal_width//2 - len(text)//2}C", end="")
+            print(f"\n\033[{self._get_terminal_width()//2 - len(text)//2}C", end="")
             print(text)
             print("\033[39m\033[0m", end="")
             end_text: list[str] = [
@@ -369,7 +379,7 @@ class Game:
         else:
             text = "Game Over!"
             print("\033[31m\033[1m", end="")
-            print(f"\n\033[{self.terminal_width//2 - len(text)//2}C", end="")
+            print(f"\n\033[{self._get_terminal_width()//2 - len(text)//2}C", end="")
             print(text)
             print("\033[39m\033[0m", end="")
             end_text: list[str] = [
@@ -383,11 +393,11 @@ class Game:
             ]
 
         for line in end_text:
-            print(self._center_text_helper(self.terminal_width, line))
+            print(self._center_text_helper(self._get_terminal_width(), line))
 
         text = "Press 'enter' to exit."
-        print(f"\n\033[{self.terminal_width//2 - len(text)//2}C", end="")
+        print(f"\n\033[{self._get_terminal_width()//2 - len(text)//2}C", end="")
         print("\033[3m\033[2m", end="")
         print(text, end="")
         print("\033[0m\033[0m", end="")
-        print(f"\n\033[{self.terminal_width//2}C", end="")
+        print(f"\n\033[{self._get_terminal_width()//2}C", end="")
