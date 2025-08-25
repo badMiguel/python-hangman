@@ -419,6 +419,15 @@ class Game:
             time.sleep(1)
 
     def _timer_display(self, idx: int) -> None:
+        # Note:
+        # The timer is re-rendered whether the time has changed or not from
+        # the previous time because whole screen clears on any user input.
+        # However, the timer does not reset when:
+        #     1. User input == ""
+        #     2. User input was already typed
+        # Thus, in these two cases, the timer will not render immediately. A
+        # better logic can be made, but with time limitation, this solution is
+        # kept for now.
         time.sleep(0.01)
         while (
             self.timer["time_counter"] > 0
