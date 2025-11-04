@@ -1,0 +1,522 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Hangman TUI — Pyodide + xterm.js</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #1e1e1e;
+            color: #ddd;
+        }
+
+        #term {
+            flex: 1;
+        }
+
+        #status {
+            padding: 6px 10px;
+            background: #111;
+            color: #eee;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="status">Loading Pyodide... please wait.</div>
+    <div id="term"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+    <script>
+        (async () => {
+            // --- Terminal setup ---
+            const {Terminal} = window;
+            const term = new Terminal({cols: 100, rows: 30, cursorBlink: true});
+            term.open(document.getElementById("term"));
+            term.focus();
+
+            // input buffer and resolver for async input bridge
+            let lineBuf = "";
+            let resolver = null;
+
+            function writeToTerm(s) {
+                // normalize newlines to CRLF for xterm.js
+                term.write(String(s).replace(/\n/g, "\r\n"));
+            }
+
+            // expose functions for Pyodide to call
+            window._py_io = {
+                // write WITHOUT newline (use for cursor save/restore, partial updates)
+                js_write: (s) => {
+                    // do not append newline — caller controls newlines
+                    term.write(String(s).replace(/\n/g, "\r\n"));
+                },
+                // write WITH newline (use for normal print)
+                js_writeln: (s) => {
+                    term.write(String(s).replace(/\n/g, "\r\n") + "\r\n");
+                },
+                // input: show prompt (no newline) and return a Promise that resolves to typed line
+                js_input: (prompt) => {
+                    if (prompt) term.write(String(prompt).replace(/\n/g, "\r\n"));
+                    lineBuf = "";
+                    return new Promise((resolve) => {
+                        resolver = resolve;
+                    });
+                },
+                force_input: (val) => {
+                    if (typeof resolver === "function") {
+                        resolver(val);
+                        resolver = null;
+                    }
+                },
+            };
+
+            // simple keyboard handling
+            term.onData((e) => {
+                const code = e.charCodeAt(0);
+                if (code === 13) {
+                    // Enter
+                    writeToTerm(""); // move to new line
+                    if (resolver) {
+                        const resolved = lineBuf;
+                        resolver(resolved);
+                        resolver = null;
+                    }
+                } else if (code === 127) {
+                    // Backspace
+                    if (lineBuf.length > 0) {
+                        lineBuf = lineBuf.slice(0, -1);
+                        term.write("\b \b");
+                    }
+                } else if (code === 3) {
+                    // Ctrl-C
+                    writeToTerm("^C");
+                    if (resolver) {
+                        resolver("\x03");
+                        resolver = null;
+                    }
+                } else {
+                    lineBuf += e;
+                    term.write(e);
+                }
+            });
+
+            // Load Pyodide
+            const status = document.getElementById("status");
+            status.textContent = "Loading Pyodide (fast) ...";
+
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js";
+            script.onload = async () => {
+                try {
+                    window.pyodide = await loadPyodide({
+                        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
+                    });
+                    status.textContent = "Preparing Hangman runtime...";
+                    // no external python packages needed for hangman
+                    // expose functions
+                    pyodide.globals.set("js_input", window._py_io.js_input);
+                    pyodide.globals.set("js_write", window._py_io.js_write);
+                    pyodide.globals.set("js_writeln", window._py_io.js_writeln);
+                    pyodide.globals.set("js_force_input", window._py_io.force_input);
+
+                    // --- Python code (Hangman) ---
+                    const pyCode = `
+import os, random, string, pickle, asyncio, shutil
+from typing import List
+
+# JS bridge functions provided by the page
+import js
+
+# lightweight I/O wrappers
+async def input_async(prompt: str = "") -> str:
+    val = await js_input(prompt)
+    return str(val)
+
+# normal writer (adds newline)
+def write(s: str = "") -> None:
+    js_writeln(str(s))
+
+# writer that does NOT append newline (use for in-place updates)
+def write_noln(s: str = "") -> None:
+    js_write(str(s))
+
+def clear_screen() -> None:
+    # ANSI: clear entire screen and move cursor home
+    write("\\033[2J\\033[H")
+
+# ---------- Assets ----------
+class Assets:
+    def __init__(self) -> None:
+        self.gallows = [
+            ["*---*   ", "|   |   ", "|   O   ", "|  \\|/  ", "|   |   ", "|  / \\  "],
+            ["*---*   ", "|   |   ", "|   O   ", "|  \\|/  ", "|   |   ", "|    \\  "],
+            ["*---*   ", "|   |   ", "|   O   ", "|  \\|/  ", "|   |   ", "|       "],
+            ["*---*   ", "|   |   ", "|   O   ", "|   |/  ", "|   |   ", "|       "],
+            ["*---*   ", "|   |   ", "|   O   ", "|   |   ", "|   |   ", "|       "],
+            ["*---*   ", "|   |   ", "|   O   ", "|       ", "|       ", "|       "],
+            ["*---*   ", "|   |   ", "|       ", "|       ", "|       ", "|       "],
+        ]
+        self.sad = "(づ•́ ᵔ •̀)づ"
+        self.happy = "✺◟(＾∇＾)◞✺"
+
+    def get_gallows(self, life: int) -> List[str]:
+        idx = max(0, min(6, life - 1))
+        return self.gallows[idx]
+
+    def get_emoticon(self, won: bool) -> str:
+        return self.happy if won else self.sad
+
+# ---------- Game ----------
+class Data:
+    def __init__(self, word_list: List[str], phrase_list: List[str]) -> None:
+        self.word_list = word_list
+        self.phrase_list = phrase_list
+
+    def get_random_word(self) -> str:
+        return random.choice(self.word_list)
+
+    def get_random_phrase(self) -> str:
+        return random.choice(self.phrase_list)
+
+class LetterTracker:
+    def __init__(self) -> None:
+        self.letter_was_typed = {c: False for c in string.ascii_lowercase}
+        self.letter_list = list(string.ascii_lowercase)
+
+    def mark_typed(self, letter: str) -> None:
+        if letter in self.letter_was_typed:
+            self.letter_was_typed[letter] = True
+
+    def is_typed(self, letter: str) -> bool:
+        return bool(self.letter_was_typed.get(letter, False))
+
+    def reset_is_typed(self) -> None:
+        for k in self.letter_was_typed:
+            self.letter_was_typed[k] = False
+
+class Game:
+    def __init__(self, settings, assets: Assets, word_list, phrase_list) -> None:
+        self.settings = settings
+        self.assets = assets
+        self.data = Data(word_list, phrase_list)
+        self.state = {
+            "life": int(self.settings.get("start_life", 6)),
+            "hidden": [],
+            "answer": "",
+            "correct_counter": 0,
+            "won": False,
+        }
+        self.tracker = LetterTracker()
+        self.timer = {
+            "time_counter": int(self.settings.get("max_time", 20)),
+            "max_time": int(self.settings.get("max_time", 20)),
+            "task": None,
+            "stop": False,
+        }
+        # ensure score files exist (persist in Pyodide FS for session)
+        for fname in ("diff_scores.pickle", "integ_scores.pickle"):
+            if not os.path.exists(fname):
+                open(fname, "wb").close()
+
+    def _center_text_helper(self, width: int, text: str) -> str:
+        return text.center(width)
+
+    def _get_terminal_width(self) -> int:
+        try:
+            return shutil.get_terminal_size().columns
+        except Exception:
+            return 80
+
+    def _get_terminal_height(self) -> int:
+        try:
+            return shutil.get_terminal_size().lines
+        except Exception:
+            return 24
+
+    # printing helpers (use write)
+    async def game_menu(self) -> None:
+        clear_screen()
+        await self._main_menu_loop()
+
+    async def _main_menu_loop(self) -> None:
+        while True:
+            clear_screen()
+            self._display_menu()
+            prompt = " " * (self._get_terminal_width() // 2 - int(self.settings.get("menu_width", 40)) // 2) + "-> "
+            choice = (await input_async(prompt)).strip()
+            if choice == "3":
+                clear_screen()
+                write("Goodbye!")
+                return
+            action = self.game_menu_helper(choice)
+            if action:
+                await self.start_game(action)
+
+    def _display_menu(self) -> None:
+        menu_text = [
+            "",
+            "*-----------------------------------*",
+            "|                                   |",
+            "|      Welcome to Hangman Game      |",
+            "|                                   |",
+            "*-----------------------------------*",
+            "",
+            "Select the number on the menu:",
+            "------------------------------",
+            "1. Basic",
+            "2. Intermediate",
+            "3. Quit",
+            "",
+        ]
+        # center vertically roughly
+        h = self._get_terminal_height()
+        start_row = max(0, h // 2 - len(menu_text) // 2)
+        write("\\n" * start_row)
+        for line in menu_text:
+            write(self._center_text_helper(self._get_terminal_width(), line))
+
+    def game_menu_helper(self, choice: str):
+        if choice == "1": return "basic"
+        if choice == "2": return "intermediate"
+        return None
+
+    async def start_game(self, level: str) -> None:
+        # prepare game
+        self.get_question(level)
+        self.timer["stop"] = False
+        self.timer["time_counter"] = self.timer["max_time"]
+        # start timer task
+        self.timer["task"] = asyncio.create_task(self._timer_task())
+
+        while (not self.timer["stop"] and self.state["life"] > 0 and self.state["correct_counter"] < len(self.state["answer"])):
+            clear_screen()
+            self._print_question()
+            # input prompt centered near bottom
+            width = len(self.tracker.letter_list)//3 * 2 - 1
+            prompt = "\\n" + " " * (self._get_terminal_width() // 2 - width // 2) + "-> "
+            letter_input = (await input_async(prompt)).strip().lower()
+
+            # reset timer on each entry
+            self.timer["time_counter"] = self.timer["max_time"]
+
+            if letter_input == "":
+                # skip turn
+                continue
+            if len(letter_input) > 1:
+                # allow guessing whole word
+                if letter_input == self.state["answer"].lower():
+                    self.state["hidden"] = list(self.state["answer"])
+                    self.state["correct_counter"] = len(self.state["answer"])
+                    self.state["won"] = True
+                    break
+                else:
+                    self.state["life"] -= 1
+                    continue
+
+            self.letter_in_question(letter_input)
+
+        # stop timer
+        self.timer["stop"] = True
+        if self.timer["task"]:
+            self.timer["task"].cancel()
+            self.timer["task"] = None
+
+        clear_screen()
+        self._game_end_menu()
+        await input_async("")
+
+        # reset game state for next time
+        self.reset_game()
+
+    async def _timer_task(self) -> None:
+        try:
+            while (
+                not self.timer["stop"]
+                and self.state["life"] > 0
+                and self.state["correct_counter"] < len(self.state["answer"])
+            ):
+                # update the small top-left timer display (no newline)
+                write_noln("\\033[s\\033[1;1H\\033[KTime left: {}\\033[u".format(self.timer["time_counter"]))
+                await asyncio.sleep(1)
+                self.timer["time_counter"] -= 1
+
+                if self.timer["time_counter"] <= 0:
+                    # lose a life and reset timer
+                    self.state["life"] -= 1
+                    self.timer["time_counter"] = self.timer["max_time"]
+
+                    # If the game ended because of this life loss, let caller handle end-of-game
+                    if self.state["life"] <= 0 or self.state["correct_counter"] >= len(self.state["answer"]):
+                        try:
+                            js_force_input("")  # unblock Python's await input_async(...)
+                        except Exception:
+                            # If js_force_input is not available for some reason, ignore
+                            pass
+                        return
+
+                    # Immediately redraw the main game screen so the player sees the updated gallows
+                    # Use clear_screen() followed by _print_question() to reproduce the normal layout.
+                    # Then re-print the input prompt so the user may continue typing.
+                    clear_screen()
+                    self._print_question()
+
+                    # Reprint the input prompt (same centering logic as in start_game)
+                    width = len(self.tracker.letter_list) // 3 * 2 - 1
+                    prompt = "\\n" + " " * (self._get_terminal_width() // 2 - width // 2) + "-> "
+                    # Use no-newline writer so we don't accidentally append an extra newline between prompt and user typing
+                    write_noln(prompt)
+
+        except asyncio.CancelledError:
+            return
+
+    def _print_question(self) -> None:
+        gallows = self.assets.get_gallows(self.state["life"])
+        # print gallows centered vertically a bit
+        write("\\n")
+        for line in gallows:
+            write(self._center_text_helper(self._get_terminal_width(), line))
+        write("")
+        write(self._center_text_helper(self._get_terminal_width(), " ".join(self.state["hidden"])))
+        # letters display similar to original
+        len_letter_list = len(self.tracker.letter_list)
+        portion = len_letter_list // 3
+        list_of_letter_list = [
+            self.tracker.letter_list[:portion],
+            self.tracker.letter_list[portion:len_letter_list-portion],
+            self.tracker.letter_list[len_letter_list-portion:len_letter_list],
+        ]
+        for letter_list in list_of_letter_list:
+            # visible text (no ANSI codes) used for centering calculation
+            visible_row = " ".join(letter_list)
+            visible_len = len(visible_row)
+            # starting column to center the visible text
+            start_col = max(0, self._get_terminal_width() // 2 - visible_len // 2)
+            # build colored row (ANSI codes inserted here, but NOT counted in centering)
+            colored_parts = []
+            for ch in letter_list:
+                if self.tracker.is_typed(ch):
+                    if ch in self.state["answer"].lower():
+                        # green for correct typed letters
+                        colored_parts.append("\\033[32m" + ch + "\\033[39m")
+                    else:
+                        # red for incorrect typed letters
+                        colored_parts.append("\\033[31m" + ch + "\\033[39m")
+                else:
+                    # not typed — plain letter
+                    colored_parts.append(ch)
+            colored_row = " ".join(colored_parts)
+            # write the row with the computed left padding so the VISIBLE text is centered
+            write(" " * start_col + colored_row)
+        write("")  # trai
+
+    def reset_game(self) -> None:
+        self.state["life"] = int(self.settings.get("start_life", 6))
+        self.state["hidden"] = []
+        self.state["answer"] = ""
+        self.state["correct_counter"] = 0
+        self.state["won"] = False
+        self.tracker.reset_is_typed()
+        self.timer["time_counter"] = self.timer["max_time"]
+        self.timer["stop"] = False
+
+    def get_question(self, level: str) -> None:
+        if level == "basic":
+            self.state["answer"] = self.data.get_random_word()
+        else:
+            self.state["answer"] = self.data.get_random_phrase()
+        # prepare hidden representation
+        self.state["hidden"] = []
+        self.state["correct_counter"] = 0
+        for ch in self.state["answer"]:
+            if ch == " ":
+                self.state["hidden"].append(" ")
+                self.state["correct_counter"] += 1
+            else:
+                self.state["hidden"].append("_")
+
+    def letter_in_question(self, letter_input: str) -> None:
+        if letter_input in self.tracker.letter_was_typed and self.tracker.is_typed(letter_input):
+            return
+        self.tracker.mark_typed(letter_input)
+        if letter_input not in self.state["answer"].lower():
+            self.state["life"] -= 1
+            return
+        # reveal letters
+        for idx, ch in enumerate(self.state["answer"].lower()):
+            if ch == letter_input:
+                self.state["hidden"][idx] = self.state["answer"][idx]  # keep original case
+                self.state["correct_counter"] += 1
+        if self.state["correct_counter"] >= len(self.state["answer"]):
+            self.state["won"] = True
+
+    def _game_end_menu(self) -> None:
+        # display end screen
+        gallows = self.assets.get_gallows(0)
+        write("\\n")
+        for line in gallows:
+            write(self._center_text_helper(self._get_terminal_width(), line))
+        if self.state["won"]:
+            text = "             Congratulations!"
+            write(self._center_text_helper(self._get_terminal_width(), "\\033[32m\\033[1m" + text + "\\033[0m"))
+            lines = ["", self.assets.get_emoticon(True), "", "Answer: " + self.state["answer"], "", "That was good! Feel free to play again", ""]
+        else:
+            text = "           Game Over!"
+            write(self._center_text_helper(self._get_terminal_width(), "\\033[31m\\033[1m" + text + "\\033[0m"))
+            lines = ["", self.assets.get_emoticon(False), "", "Answer: " + self.state["answer"], "", "It's ok! You can try again.", ""]
+        for ln in lines:
+            write(self._center_text_helper(self._get_terminal_width(), ln))
+        write(self._center_text_helper(self._get_terminal_width(), "Press 'enter' to continue."))
+
+# -------------------------
+# Embedded settings and data
+settings = {
+    "start_life": 7,
+    "max_time": 2,
+    "menu_width": 40
+}
+
+word_list = [
+    "apple", "shadow", "cactus", "wizard", "puzzle", "thunder", "galaxy", "horizon", "crystal",
+    "lantern", "village", "dragon", "forest", "rocket", "circus", "kingdom", "mystery", "river",
+    "desert", "phoenix", "tornado", "whisper", "eclipse", "treasure",
+]
+
+phrase_list = [
+        "realm of magic", "curse of the pharaoh", "sword in the stone", "veil of illusion",
+        "under the stars", "race against time", "house of cards", "the golden ticket",
+        "chasing butterflies", "a penny saved", "roll the dice", "shadows at noon",
+        "coffee and dreams", "through the window",
+]
+
+# Start the game
+async def main():
+    clear_screen()
+    write("Hangman (browser TUI) starting...")
+    game = Game(settings, Assets(), word_list, phrase_list)
+    await game.game_menu()
+
+# Run the async main
+asyncio.ensure_future(main())
+`;
+
+                    // run python
+                    await pyodide.runPythonAsync(pyCode);
+                    status.textContent = "Hangman loaded — interact with the terminal below.";
+                } catch (err) {
+                    console.error(err);
+                    status.textContent = "Error loading Hangman (see console)";
+                }
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
+</body>
+
+</html>
