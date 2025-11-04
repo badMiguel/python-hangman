@@ -1,3 +1,14 @@
+<!--
+DISCLAIMER:
+
+This demo integrates the original Python calculus training app into a web-based terminal 
+interface using xterm.js and Pyodide. The terminal integration layer (JavaScript bridge, 
+async input/output handling, and styling) was developed with assistance from ChatGPT-5. 
+
+The underlying Python logic including question generation, symbolic calculus operations, 
+and scoring was created independently prior to AI involvement.
+-->
+
 <!doctype html>
 <html>
 
@@ -6,17 +17,29 @@
     <title>Hangman TUI — Pyodide + xterm.js</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" />
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             height: 100vh;
             display: flex;
             flex-direction: column;
-            background: #1e1e1e;
-            color: #ddd;
+            background-color: #1f1d2e;
         }
 
         #term {
-            flex: 1;
+            display: flex;
+            justify-content: center;
+            height: 600px;
+            max-width: 800px;
+            border-radius: 20px;
+            overflow: hidden;
+            margin: auto;
+            flex-direction: column;
         }
 
         #status {
@@ -25,19 +48,76 @@
             color: #eee;
             font-family: monospace;
         }
+
+        .xterm {
+            padding: 20px;
+        }
+
+        .xterm::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .xterm::-webkit-scrollbar-track {
+            background: #191724;
+        }
+
+        .xterm::-webkit-scrollbar-thumb {
+            background-color: #f6c177;
+            border-radius: 5px;
+            border: 2px solid #191724;
+        }
+
+        .xterm::-webkit-scrollbar-thumb:hover {
+            background-color: #ebbcba;
+        }
+
+        .xterm {
+            scrollbar-width: thin;
+            scrollbar-color: #f6c177 #191724;
+        }
     </style>
 </head>
 
 <body>
-    <div id="status">Loading Pyodide... please wait.</div>
+    <div style="
+                font-family: &quot;Fira Code&quot;, monospace;
+                font-size: 18px;
+                color: #f4ede8;
+                padding: 10px;
+                text-align: center;
+                white-space: pre;
+            ">
+  ___ ___                                        _______   
+ /   |   \_____    ____    ____   _____ _____    \      \  
+/    ~    \__  \  /    \  / ___\ /     \\__  \   /   |   \ 
+\    Y    // __ \|   |  \/ /_/  >  Y Y  \/ __ \_/    |    \
+ \___|_  /(____  /___|  /\___  /|__|_|  (____  /\____|__  /
+       \/      \/     \//_____/       \/     \/         \/  
+     </div>
     <div id="term"></div>
+    <footer>
+        <div id="status">Loading Pyodide... please wait.</div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
     <script>
         (async () => {
             // --- Terminal setup ---
             const {Terminal} = window;
-            const term = new Terminal({cols: 100, rows: 30, cursorBlink: true});
+            const term = new Terminal({
+                cols: 100,
+                rows: 30,
+                cursorBlink: true,
+                fontFamily: "Fira Code, monospace",
+                fontSize: 16,
+                theme: {
+                    foreground: "#f4ede8", // text color
+                    background: "#191724", // terminal background
+                    cursor: "#f6c177", // cursor color
+                    selection: "#f6c17750", // semi-transparent selection
+                },
+            });
+
             term.open(document.getElementById("term"));
             term.focus();
 
@@ -379,7 +459,7 @@ class Game:
     def _print_question(self) -> None:
         gallows = self.assets.get_gallows(self.state["life"])
         # print gallows centered vertically a bit
-        write("\\n")
+        write("\\n\\n\\n\\n\\n")
         for line in gallows:
             write(self._center_text_helper(self._get_terminal_width(), line))
         write("")
@@ -478,7 +558,7 @@ class Game:
 # Embedded settings and data
 settings = {
     "start_life": 7,
-    "max_time": 2,
+    "max_time": 15,
     "menu_width": 40
 }
 
